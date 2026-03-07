@@ -24,6 +24,7 @@
 				<li><a href="/clubs">Vereine</a></li>
 				<li><a href="/seasons">Saisons</a></li>
 				<li><a href="/stats">Statistiken</a></li>
+				<li><a href="/import">Import</a></li>
 			</ul>
 			<button
 				class="btn btn-ghost btn-circle btn-sm"
