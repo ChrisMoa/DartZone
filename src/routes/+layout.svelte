@@ -24,7 +24,8 @@
 				<li><a href="/clubs">Vereine</a></li>
 				<li><a href="/tournaments">Turniere</a></li>
 				<li><a href="/stats">Statistiken</a></li>
-				<li><a href="/import">Import</a></li>
+				<li><a href="/import">Excel-Import</a></li>
+				<li><a href="/export">Backup</a></li>
 			</ul>
 			<button
 				class="btn btn-ghost btn-circle btn-sm"
