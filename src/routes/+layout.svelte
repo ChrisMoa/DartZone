@@ -22,7 +22,7 @@
 		<div class="flex-none flex items-center gap-1">
 			<ul class="menu menu-horizontal gap-1">
 				<li><a href="/clubs">Vereine</a></li>
-				<li><a href="/seasons">Saisons</a></li>
+				<li><a href="/tournaments">Turniere</a></li>
 				<li><a href="/stats">Statistiken</a></li>
 				<li><a href="/import">Import</a></li>
 			</ul>

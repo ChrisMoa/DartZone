@@ -9,6 +9,7 @@ const mockClub: Club = {
 	name: 'DC Bullseye Berlin',
 	short_name: 'BCB',
 	crest_url: null,
+	has_crest: false,
 	primary_color: '#e74c3c',
 	secondary_color: '#ffffff',
 	contact_email: 'info@bullseye.de',

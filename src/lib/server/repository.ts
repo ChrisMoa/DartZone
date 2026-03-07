@@ -1,14 +1,17 @@
 import type { Club } from '$lib/types/club.js';
 import type { Player } from '$lib/types/club.js';
-import type { Season, Match, Standing } from '$lib/types/league.js';
+import type { Tournament, Match, Standing } from '$lib/types/league.js';
 
 export interface ClubRepository {
 	getAll(): Promise<Club[]>;
 	getById(id: string): Promise<Club | null>;
-	create(club: Omit<Club, 'id' | 'created_at' | 'updated_at'>): Promise<Club>;
-	update(id: string, club: Partial<Omit<Club, 'id' | 'created_at' | 'updated_at'>>): Promise<Club | null>;
+	create(club: Omit<Club, 'id' | 'created_at' | 'updated_at' | 'has_crest'>): Promise<Club>;
+	update(id: string, club: Partial<Omit<Club, 'id' | 'created_at' | 'updated_at' | 'has_crest'>>): Promise<Club | null>;
 	delete(id: string): Promise<boolean>;
 	search(query: string): Promise<Club[]>;
+	getCrestData(id: string): Promise<{ data: Buffer; mime: string } | null>;
+	setCrestData(id: string, data: Buffer, mime: string): Promise<boolean>;
+	removeCrestData(id: string): Promise<boolean>;
 }
 
 export interface PlayerRepository {
@@ -20,21 +23,21 @@ export interface PlayerRepository {
 	delete(id: string): Promise<boolean>;
 }
 
-export interface SeasonRepository {
-	getAll(): Promise<Season[]>;
-	getById(id: string): Promise<Season | null>;
-	getActive(): Promise<Season | null>;
-	create(season: Omit<Season, 'id'>): Promise<Season>;
-	update(id: string, season: Partial<Omit<Season, 'id'>>): Promise<Season | null>;
+export interface TournamentRepository {
+	getAll(): Promise<Tournament[]>;
+	getById(id: string): Promise<Tournament | null>;
+	getActive(): Promise<Tournament | null>;
+	create(tournament: Omit<Tournament, 'id'>): Promise<Tournament>;
+	update(id: string, tournament: Partial<Omit<Tournament, 'id'>>): Promise<Tournament | null>;
 	delete(id: string): Promise<boolean>;
-	getClubIds(seasonId: string): Promise<string[]>;
-	assignClub(seasonId: string, clubId: string): Promise<void>;
-	removeClub(seasonId: string, clubId: string): Promise<void>;
+	getClubIds(tournamentId: string): Promise<string[]>;
+	assignClub(tournamentId: string, clubId: string): Promise<void>;
+	removeClub(tournamentId: string, clubId: string): Promise<void>;
 }
 
 export interface MatchRepository {
 	getAll(): Promise<Match[]>;
-	getBySeasonId(seasonId: string): Promise<Match[]>;
+	getByTournamentId(tournamentId: string): Promise<Match[]>;
 	getById(id: string): Promise<Match | null>;
 	create(match: Omit<Match, 'id'>): Promise<Match>;
 	update(id: string, match: Partial<Omit<Match, 'id'>>): Promise<Match | null>;
@@ -42,6 +45,6 @@ export interface MatchRepository {
 }
 
 export interface StandingsService {
-	getBySeasonId(seasonId: string): Promise<Standing[]>;
-	recalculate(seasonId: string): Promise<Standing[]>;
+	getByTournamentId(tournamentId: string): Promise<Standing[]>;
+	recalculate(tournamentId: string): Promise<Standing[]>;
 }

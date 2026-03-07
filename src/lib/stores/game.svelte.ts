@@ -9,7 +9,9 @@ export function createGameState(config: {
 	home_player: Player;
 	away_player: Player;
 	starting_score: number;
+	softCheckout?: boolean;
 }) {
+	const softCheckout = config.softCheckout ?? false;
 	let id = $state(crypto.randomUUID());
 	let match_id = $state(config.match_id);
 	let leg_number = $state(config.leg_number);
@@ -63,8 +65,10 @@ export function createGameState(config: {
 
 		const score = calcScore(sector, multiplier);
 		const remaining = isHomePlayer ? home_remaining : away_remaining;
-		const bust = isBust(remaining, score, multiplier);
-		const checkout = !bust && isCheckout(remaining, score, multiplier);
+		const bust = isBust(remaining, score, multiplier, softCheckout);
+		const checkout = !bust && isCheckout(remaining, score, multiplier, softCheckout);
+
+		const newRemaining = checkout && softCheckout ? 0 : remaining - score;
 
 		const dartThrow: DartThrow = {
 			id: crypto.randomUUID(),
@@ -75,7 +79,7 @@ export function createGameState(config: {
 			sector,
 			multiplier,
 			score: bust ? 0 : score,
-			remaining_score: bust ? remaining : remaining - score,
+			remaining_score: bust ? remaining : newRemaining,
 			is_bust: bust,
 			thrown_at: new Date().toISOString()
 		};
@@ -91,11 +95,11 @@ export function createGameState(config: {
 			return dartThrow;
 		}
 
-		// Update remaining score
+		// Update remaining score (clamp to 0 in soft checkout mode)
 		if (isHomePlayer) {
-			home_remaining -= score;
+			home_remaining = checkout && softCheckout ? 0 : home_remaining - score;
 		} else {
-			away_remaining -= score;
+			away_remaining = checkout && softCheckout ? 0 : away_remaining - score;
 		}
 
 		if (checkout) {
@@ -218,6 +222,7 @@ export function createGameState(config: {
 		get homeAverage() { return homeAverage; },
 		get awayAverage() { return awayAverage; },
 		get checkoutRoute() { return checkoutRoute; },
+		get softCheckout() { return softCheckout; },
 		registerThrow,
 		undoLastThrow,
 		getState

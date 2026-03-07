@@ -44,29 +44,20 @@ export const playerSchema = z.object({
 		.default(null)
 });
 
-export const seasonSchema = z
-	.object({
-		name: z
-			.string()
-			.min(2, 'Name muss mindestens 2 Zeichen lang sein')
-			.max(100, 'Name darf maximal 100 Zeichen lang sein'),
-		game_mode: z.enum(['501', '301', 'cricket']),
-		legs_per_set: z.number().int().min(1).max(15),
-		sets_per_match: z.number().int().min(1).max(13),
-		start_date: z.string().nullable().optional().default(null),
-		end_date: z.string().nullable().optional().default(null),
-		is_active: z.boolean().default(false)
-	})
-	.refine(
-		(data) => {
-			if (data.start_date && data.end_date) {
-				return new Date(data.start_date) < new Date(data.end_date);
-			}
-			return true;
-		},
-		{ message: 'Startdatum muss vor Enddatum liegen', path: ['end_date'] }
-	);
+export const tournamentSchema = z.object({
+	name: z
+		.string()
+		.min(2, 'Name muss mindestens 2 Zeichen lang sein')
+		.max(100, 'Name darf maximal 100 Zeichen lang sein'),
+	game_mode: z.enum(['501', '301', 'cricket']),
+	format: z.enum(['round_robin', 'knockout']),
+	legs_per_set: z.number().int().min(1).max(15),
+	sets_per_match: z.number().int().min(1).max(13),
+	start_date: z.string().nullable().optional().default(null),
+	end_date: z.string().nullable().optional().default(null),
+	is_active: z.boolean().default(false)
+});
 
 export type ClubFormData = z.infer<typeof clubSchema>;
 export type PlayerFormData = z.infer<typeof playerSchema>;
-export type SeasonFormData = z.infer<typeof seasonSchema>;
+export type TournamentFormData = z.infer<typeof tournamentSchema>;

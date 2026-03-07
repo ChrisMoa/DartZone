@@ -1,12 +1,12 @@
 <script lang="ts">
-	import type { Season } from '$lib/types/league.js';
+	import type { Tournament } from '$lib/types/league.js';
 
 	interface Props {
-		seasons: Season[];
+		tournaments: Tournament[];
 		selected: string;
 	}
 
-	let { seasons, selected }: Props = $props();
+	let { tournaments, selected }: Props = $props();
 </script>
 
 <select
@@ -14,14 +14,14 @@
 	value={selected}
 	onchange={(e) => {
 		const val = (e.target as HTMLSelectElement).value;
-		if (val) window.location.href = `/seasons/${val}`;
+		if (val) window.location.href = `/tournaments/${val}`;
 	}}
-	data-testid="season-selector"
+	data-testid="tournament-selector"
 >
-	{#each seasons as season (season.id)}
-		<option value={season.id}>
-			{season.name}
-			{#if season.is_active}(aktiv){/if}
+	{#each tournaments as tournament (tournament.id)}
+		<option value={tournament.id}>
+			{tournament.name}
+			{#if tournament.is_active}(aktiv){/if}
 		</option>
 	{/each}
 </select>

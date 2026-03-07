@@ -4,50 +4,93 @@
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
 
 	let { data } = $props();
+
+	const formatLabel = $derived(
+		data.tournament.format === 'round_robin' ? 'Jeder gegen Jeden' : 'K.O.'
+	);
 </script>
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center gap-4">
-		<a href="/seasons" class="btn btn-ghost btn-sm">Zurueck</a>
-		<h1 class="text-2xl font-bold">{data.season.name}</h1>
-		{#if data.season.is_active}
+		<a href="/tournaments" class="btn btn-ghost btn-sm">Zurueck</a>
+		<h1 class="text-2xl font-bold">{data.tournament.name}</h1>
+		{#if data.tournament.is_active}
 			<span class="badge badge-success">Aktiv</span>
 		{/if}
 	</div>
 
 	<div class="text-sm text-base-content/60">
-		{data.season.game_mode} &middot; {data.season.legs_per_set} Legs/Set &middot; {data.season.sets_per_match} Sets/Match
+		{data.tournament.game_mode} &middot; {formatLabel} &middot;
+		{data.tournament.legs_per_set} Legs/Set &middot; {data.tournament.sets_per_match} Sets/Match
 	</div>
 
-	<!-- League Table -->
-	<div class="card bg-base-100 shadow-sm">
-		<div class="card-body">
-			<h2 class="card-title">Tabelle</h2>
-			{#if data.standings.length === 0}
-				<p class="text-base-content/60">Noch keine Vereine zugeordnet.</p>
-			{:else}
-				<LeagueTable standings={data.standings} />
-			{/if}
+	<!-- Standings (round-robin) or Bracket (knockout) -->
+	{#if data.tournament.format === 'round_robin'}
+		<div class="card bg-base-100 shadow-sm">
+			<div class="card-body">
+				<h2 class="card-title">Tabelle</h2>
+				{#if data.standings.length === 0}
+					<p class="text-base-content/60">Noch keine Vereine zugeordnet.</p>
+				{:else}
+					<LeagueTable standings={data.standings} />
+				{/if}
+			</div>
 		</div>
-	</div>
+	{:else}
+		<div class="card bg-base-100 shadow-sm">
+			<div class="card-body">
+				<h2 class="card-title">K.O.-Runde</h2>
+				{#if data.matches.length === 0}
+					<p class="text-base-content/60">Noch keine Spiele generiert.</p>
+				{:else}
+					{@const rounds = [...new Set(data.matches.map((m) => m.round).filter(Boolean))]}
+					{#each rounds as round}
+						<h3 class="font-semibold mt-4 mb-2">{round}</h3>
+						<div class="grid gap-3">
+							{#each data.matches.filter((m) => m.round === round) as match (match.id)}
+								<MatchCard {match} showPlayLink={true} tournamentId={data.tournament.id} />
+							{/each}
+						</div>
+					{/each}
+					{@const noRound = data.matches.filter((m) => !m.round)}
+					{#if noRound.length > 0}
+						<div class="grid gap-3 mt-4">
+							{#each noRound as match (match.id)}
+								<MatchCard {match} showPlayLink={true} tournamentId={data.tournament.id} />
+							{/each}
+						</div>
+					{/if}
+				{/if}
+			</div>
+		</div>
+	{/if}
 
 	<!-- Matches -->
 	<div class="card bg-base-100 shadow-sm">
 		<div class="card-body">
-			<h2 class="card-title">Spiele</h2>
+			<div class="flex items-center justify-between">
+				<h2 class="card-title">Spiele</h2>
+				{#if data.assignedClubIds.length >= 2 && data.matches.length === 0}
+					<form method="POST" action="?/generatePairings">
+						<button type="submit" class="btn btn-sm btn-secondary" data-testid="generate-pairings-btn">
+							Paarungen generieren
+						</button>
+					</form>
+				{/if}
+			</div>
 			{#if data.matches.length === 0}
 				<p class="text-base-content/60">Noch keine Spiele geplant.</p>
 			{:else}
 				<div class="grid gap-3" data-testid="match-list">
 					{#each data.matches as match (match.id)}
-						<MatchCard {match} showPlayLink={true} seasonId={data.season.id} />
+						<MatchCard {match} showPlayLink={true} tournamentId={data.tournament.id} />
 					{/each}
 				</div>
 			{/if}
 
 			{#if data.assignedClubIds.length >= 2}
 				<details class="collapse collapse-arrow bg-base-200 mt-4">
-					<summary class="collapse-title font-medium">Neues Spiel planen</summary>
+					<summary class="collapse-title font-medium">Spiel manuell planen</summary>
 					<div class="collapse-content">
 						<form method="POST" action="?/scheduleMatch" class="flex flex-col gap-3 pt-2" data-testid="schedule-match-form">
 							<div class="flex gap-4">
@@ -91,7 +134,14 @@
 						<form method="POST" action="?/removeClub" class="inline">
 							<input type="hidden" name="club_id" value={standing.club_id} />
 							<button type="submit" class="btn btn-sm btn-outline gap-1" data-testid="remove-club-btn">
-								<ClubCrest crest_url={standing.crest_url} club_name={standing.club_name} primary_color="#666" size={20} />
+								<ClubCrest
+									club_id={standing.club_id}
+									has_crest={standing.has_crest}
+									crest_url={standing.crest_url}
+									club_name={standing.club_name}
+									primary_color="#666"
+									size={20}
+								/>
 								{standing.short_name}
 								<span class="text-error">x</span>
 							</button>

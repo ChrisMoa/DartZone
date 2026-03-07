@@ -3,6 +3,7 @@ export interface Club {
 	name: string;
 	short_name: string;
 	crest_url: string | null;
+	has_crest: boolean;
 	primary_color: string;
 	secondary_color: string;
 	contact_email: string | null;

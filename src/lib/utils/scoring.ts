@@ -31,16 +31,16 @@ export function isCheckoutPossible(remaining: number): boolean {
 
 /**
  * Check if a throw results in a bust.
- * Bust occurs when:
- * - Remaining score goes below 0
- * - Remaining score becomes 1 (can't finish on a double)
- * - Remaining score becomes 0 but the last dart wasn't a double
+ * Standard mode: bust when remaining < 0, remaining === 1, or remaining === 0 without a double.
+ * Soft checkout mode: never a bust (any throw that reaches <= 0 wins).
  */
 export function isBust(
 	remainingBefore: number,
 	score: number,
-	multiplier: Multiplier
+	multiplier: Multiplier,
+	softCheckout: boolean = false
 ): boolean {
+	if (softCheckout) return false;
 	const remaining = remainingBefore - score;
 	if (remaining < 0) return true;
 	if (remaining === 1) return true;
@@ -49,12 +49,18 @@ export function isBust(
 }
 
 /**
- * Check if a throw is a valid checkout (remaining reaches exactly 0 on a double).
+ * Check if a throw is a valid checkout.
+ * Standard mode: remaining reaches exactly 0 on a double.
+ * Soft checkout mode: remaining reaches 0 or below.
  */
 export function isCheckout(
 	remainingBefore: number,
 	score: number,
-	multiplier: Multiplier
+	multiplier: Multiplier,
+	softCheckout: boolean = false
 ): boolean {
+	if (softCheckout) {
+		return remainingBefore - score <= 0;
+	}
 	return remainingBefore - score === 0 && multiplier === 2;
 }

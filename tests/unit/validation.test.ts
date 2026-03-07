@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clubSchema, playerSchema, seasonSchema } from '$lib/utils/validation.js';
+import { clubSchema, playerSchema, tournamentSchema } from '$lib/utils/validation.js';
 
 describe('clubSchema', () => {
 	it('accepts valid club data', () => {
@@ -145,39 +145,47 @@ describe('playerSchema', () => {
 	});
 });
 
-describe('seasonSchema', () => {
-	it('accepts valid season data', () => {
-		const result = seasonSchema.safeParse({
-			name: 'Saison 2025/26',
+describe('tournamentSchema', () => {
+	it('accepts valid tournament data', () => {
+		const result = tournamentSchema.safeParse({
+			name: 'Fruehjahrscup 2026',
 			game_mode: '501',
+			format: 'round_robin',
 			legs_per_set: 3,
 			sets_per_match: 5,
-			start_date: '2025-09-01',
-			end_date: '2026-06-30',
+			start_date: '2026-03-15',
 			is_active: true
 		});
 		expect(result.success).toBe(true);
 	});
 
-	it('rejects start_date after end_date', () => {
-		const result = seasonSchema.safeParse({
-			name: 'Saison 2025/26',
+	it('accepts knockout format', () => {
+		const result = tournamentSchema.safeParse({
+			name: 'K.O. Cup',
 			game_mode: '501',
+			format: 'knockout',
 			legs_per_set: 3,
-			sets_per_match: 5,
-			start_date: '2026-06-30',
-			end_date: '2025-09-01'
+			sets_per_match: 5
 		});
-		expect(result.success).toBe(false);
-		if (!result.success) {
-			expect(result.error.issues[0].message).toContain('Startdatum');
-		}
+		expect(result.success).toBe(true);
 	});
 
 	it('rejects invalid game_mode', () => {
-		const result = seasonSchema.safeParse({
+		const result = tournamentSchema.safeParse({
 			name: 'Test',
 			game_mode: '701',
+			format: 'round_robin',
+			legs_per_set: 3,
+			sets_per_match: 5
+		});
+		expect(result.success).toBe(false);
+	});
+
+	it('rejects invalid format', () => {
+		const result = tournamentSchema.safeParse({
+			name: 'Test',
+			game_mode: '501',
+			format: 'swiss',
 			legs_per_set: 3,
 			sets_per_match: 5
 		});
@@ -185,9 +193,10 @@ describe('seasonSchema', () => {
 	});
 
 	it('accepts null dates', () => {
-		const result = seasonSchema.safeParse({
-			name: 'Test Season',
+		const result = tournamentSchema.safeParse({
+			name: 'Test Tournament',
 			game_mode: '301',
+			format: 'round_robin',
 			legs_per_set: 1,
 			sets_per_match: 1
 		});

@@ -1,11 +1,11 @@
 import type Database from 'better-sqlite3';
 import type { Club } from '$lib/types/club.js';
 import type { Player } from '$lib/types/club.js';
-import type { Season, Match, Standing } from '$lib/types/league.js';
+import type { Tournament, Match, Standing } from '$lib/types/league.js';
 import type {
 	ClubRepository,
 	PlayerRepository,
-	SeasonRepository,
+	TournamentRepository,
 	MatchRepository,
 	StandingsService
 } from './repository.js';
@@ -23,39 +23,90 @@ function now(): string {
 export class SqliteClubRepository implements ClubRepository {
 	constructor(private db: Database.Database) {}
 
+	private rowToClub(row: Record<string, unknown>): Club {
+		return {
+			id: row.id as string,
+			name: row.name as string,
+			short_name: row.short_name as string,
+			crest_url: row.crest_url as string | null,
+			has_crest: row.crest_data != null,
+			primary_color: row.primary_color as string,
+			secondary_color: row.secondary_color as string,
+			contact_email: row.contact_email as string | null,
+			created_at: row.created_at as string,
+			updated_at: row.updated_at as string
+		};
+	}
+
 	async getAll(): Promise<Club[]> {
-		return this.db.prepare('SELECT * FROM clubs ORDER BY name').all() as Club[];
+		const rows = this.db
+			.prepare('SELECT id, name, short_name, crest_url, crest_data IS NOT NULL as has_crest_flag, primary_color, secondary_color, contact_email, created_at, updated_at FROM clubs ORDER BY name')
+			.all() as Array<Record<string, unknown>>;
+		return rows.map((r) => ({
+			id: r.id as string,
+			name: r.name as string,
+			short_name: r.short_name as string,
+			crest_url: r.crest_url as string | null,
+			has_crest: (r.has_crest_flag as number) === 1,
+			primary_color: r.primary_color as string,
+			secondary_color: r.secondary_color as string,
+			contact_email: r.contact_email as string | null,
+			created_at: r.created_at as string,
+			updated_at: r.updated_at as string
+		}));
 	}
 
 	async getById(id: string): Promise<Club | null> {
-		return (this.db.prepare('SELECT * FROM clubs WHERE id = ?').get(id) as Club) ?? null;
+		const row = this.db
+			.prepare('SELECT id, name, short_name, crest_url, crest_data IS NOT NULL as has_crest_flag, primary_color, secondary_color, contact_email, created_at, updated_at FROM clubs WHERE id = ?')
+			.get(id) as Record<string, unknown> | undefined;
+		if (!row) return null;
+		return {
+			id: row.id as string,
+			name: row.name as string,
+			short_name: row.short_name as string,
+			crest_url: row.crest_url as string | null,
+			has_crest: (row.has_crest_flag as number) === 1,
+			primary_color: row.primary_color as string,
+			secondary_color: row.secondary_color as string,
+			contact_email: row.contact_email as string | null,
+			created_at: row.created_at as string,
+			updated_at: row.updated_at as string
+		};
 	}
 
-	async create(data: Omit<Club, 'id' | 'created_at' | 'updated_at'>): Promise<Club> {
-		const club: Club = { ...data, id: generateId(), created_at: now(), updated_at: now() };
+	async create(data: Omit<Club, 'id' | 'created_at' | 'updated_at' | 'has_crest'>): Promise<Club> {
+		const id = generateId();
+		const ts = now();
 		this.db
 			.prepare(
 				`INSERT INTO clubs (id, name, short_name, crest_url, primary_color, secondary_color, contact_email, created_at, updated_at)
-				 VALUES (@id, @name, @short_name, @crest_url, @primary_color, @secondary_color, @contact_email, @created_at, @updated_at)`
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
-			.run(club);
-		return club;
+			.run(id, data.name, data.short_name, data.crest_url, data.primary_color, data.secondary_color, data.contact_email, ts, ts);
+		return {
+			...data,
+			id,
+			has_crest: false,
+			created_at: ts,
+			updated_at: ts
+		};
 	}
 
 	async update(
 		id: string,
-		data: Partial<Omit<Club, 'id' | 'created_at' | 'updated_at'>>
+		data: Partial<Omit<Club, 'id' | 'created_at' | 'updated_at' | 'has_crest'>>
 	): Promise<Club | null> {
 		const existing = await this.getById(id);
 		if (!existing) return null;
-		const updated: Club = { ...existing, ...data, updated_at: now() };
+		const updated = { ...existing, ...data, updated_at: now() };
 		this.db
 			.prepare(
-				`UPDATE clubs SET name = @name, short_name = @short_name, crest_url = @crest_url,
-				 primary_color = @primary_color, secondary_color = @secondary_color,
-				 contact_email = @contact_email, updated_at = @updated_at WHERE id = @id`
+				`UPDATE clubs SET name = ?, short_name = ?, crest_url = ?,
+				 primary_color = ?, secondary_color = ?,
+				 contact_email = ?, updated_at = ? WHERE id = ?`
 			)
-			.run(updated);
+			.run(updated.name, updated.short_name, updated.crest_url, updated.primary_color, updated.secondary_color, updated.contact_email, updated.updated_at, id);
 		return updated;
 	}
 
@@ -66,11 +117,46 @@ export class SqliteClubRepository implements ClubRepository {
 
 	async search(query: string): Promise<Club[]> {
 		const q = `%${query.toLowerCase()}%`;
-		return this.db
+		const rows = this.db
 			.prepare(
-				`SELECT * FROM clubs WHERE LOWER(name) LIKE ? OR LOWER(short_name) LIKE ? ORDER BY name`
+				`SELECT id, name, short_name, crest_url, crest_data IS NOT NULL as has_crest_flag, primary_color, secondary_color, contact_email, created_at, updated_at
+				 FROM clubs WHERE LOWER(name) LIKE ? OR LOWER(short_name) LIKE ? ORDER BY name`
 			)
-			.all(q, q) as Club[];
+			.all(q, q) as Array<Record<string, unknown>>;
+		return rows.map((r) => ({
+			id: r.id as string,
+			name: r.name as string,
+			short_name: r.short_name as string,
+			crest_url: r.crest_url as string | null,
+			has_crest: (r.has_crest_flag as number) === 1,
+			primary_color: r.primary_color as string,
+			secondary_color: r.secondary_color as string,
+			contact_email: r.contact_email as string | null,
+			created_at: r.created_at as string,
+			updated_at: r.updated_at as string
+		}));
+	}
+
+	async getCrestData(id: string): Promise<{ data: Buffer; mime: string } | null> {
+		const row = this.db
+			.prepare('SELECT crest_data, crest_mime FROM clubs WHERE id = ?')
+			.get(id) as { crest_data: Buffer | null; crest_mime: string | null } | undefined;
+		if (!row || !row.crest_data || !row.crest_mime) return null;
+		return { data: row.crest_data, mime: row.crest_mime };
+	}
+
+	async setCrestData(id: string, data: Buffer, mime: string): Promise<boolean> {
+		const result = this.db
+			.prepare('UPDATE clubs SET crest_data = ?, crest_mime = ?, updated_at = ? WHERE id = ?')
+			.run(data, mime, now(), id);
+		return result.changes > 0;
+	}
+
+	async removeCrestData(id: string): Promise<boolean> {
+		const result = this.db
+			.prepare('UPDATE clubs SET crest_data = NULL, crest_mime = NULL, updated_at = ? WHERE id = ?')
+			.run(now(), id);
+		return result.changes > 0;
 	}
 }
 
@@ -126,53 +212,58 @@ export class SqlitePlayerRepository implements PlayerRepository {
 	}
 }
 
-// --- Season Repository ---
+// --- Tournament Repository ---
 
-export class SqliteSeasonRepository implements SeasonRepository {
+export class SqliteTournamentRepository implements TournamentRepository {
 	constructor(private db: Database.Database) {}
 
-	async getAll(): Promise<Season[]> {
-		const rows = this.db.prepare('SELECT * FROM seasons ORDER BY name').all() as Array<
-			Omit<Season, 'is_active'> & { is_active: number }
-		>;
-		return rows.map((r) => ({ ...r, is_active: r.is_active === 1 }));
-	}
-
-	async getById(id: string): Promise<Season | null> {
-		const row = this.db.prepare('SELECT * FROM seasons WHERE id = ?').get(id) as
-			| (Omit<Season, 'is_active'> & { is_active: number })
-			| undefined;
-		if (!row) return null;
+	private rowToTournament(row: Omit<Tournament, 'is_active'> & { is_active: number }): Tournament {
 		return { ...row, is_active: row.is_active === 1 };
 	}
 
-	async getActive(): Promise<Season | null> {
-		const row = this.db.prepare('SELECT * FROM seasons WHERE is_active = 1').get() as
-			| (Omit<Season, 'is_active'> & { is_active: number })
+	async getAll(): Promise<Tournament[]> {
+		const rows = this.db.prepare('SELECT * FROM tournaments ORDER BY name').all() as Array<
+			Omit<Tournament, 'is_active'> & { is_active: number }
+		>;
+		return rows.map((r) => this.rowToTournament(r));
+	}
+
+	async getById(id: string): Promise<Tournament | null> {
+		const row = this.db.prepare('SELECT * FROM tournaments WHERE id = ?').get(id) as
+			| (Omit<Tournament, 'is_active'> & { is_active: number })
+			| undefined;
+		if (!row) return null;
+		return this.rowToTournament(row);
+	}
+
+	async getActive(): Promise<Tournament | null> {
+		const row = this.db.prepare('SELECT * FROM tournaments WHERE is_active = 1').get() as
+			| (Omit<Tournament, 'is_active'> & { is_active: number })
 			| undefined;
 		if (!row) return null;
 		return { ...row, is_active: true };
 	}
 
-	async create(data: Omit<Season, 'id'>): Promise<Season> {
-		const season: Season = { ...data, id: generateId() };
+	async create(data: Omit<Tournament, 'id'>): Promise<Tournament> {
+		const tournament: Tournament = { ...data, id: generateId() };
 		this.db
 			.prepare(
-				`INSERT INTO seasons (id, name, game_mode, legs_per_set, sets_per_match, start_date, end_date, is_active)
-				 VALUES (@id, @name, @game_mode, @legs_per_set, @sets_per_match, @start_date, @end_date, @is_active)`
+				`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, is_active)
+				 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @is_active)`
 			)
-			.run({ ...season, is_active: season.is_active ? 1 : 0 });
-		return season;
+			.run({ ...tournament, is_active: tournament.is_active ? 1 : 0 });
+		return tournament;
 	}
 
-	async update(id: string, data: Partial<Omit<Season, 'id'>>): Promise<Season | null> {
+	async update(id: string, data: Partial<Omit<Tournament, 'id'>>): Promise<Tournament | null> {
 		const existing = await this.getById(id);
 		if (!existing) return null;
-		const updated: Season = { ...existing, ...data };
+		const updated: Tournament = { ...existing, ...data };
 		this.db
 			.prepare(
-				`UPDATE seasons SET name = @name, game_mode = @game_mode, legs_per_set = @legs_per_set,
-				 sets_per_match = @sets_per_match, start_date = @start_date, end_date = @end_date,
+				`UPDATE tournaments SET name = @name, game_mode = @game_mode, format = @format,
+				 legs_per_set = @legs_per_set, sets_per_match = @sets_per_match,
+				 start_date = @start_date, end_date = @end_date,
 				 is_active = @is_active WHERE id = @id`
 			)
 			.run({ ...updated, is_active: updated.is_active ? 1 : 0 });
@@ -180,27 +271,27 @@ export class SqliteSeasonRepository implements SeasonRepository {
 	}
 
 	async delete(id: string): Promise<boolean> {
-		const result = this.db.prepare('DELETE FROM seasons WHERE id = ?').run(id);
+		const result = this.db.prepare('DELETE FROM tournaments WHERE id = ?').run(id);
 		return result.changes > 0;
 	}
 
-	async getClubIds(seasonId: string): Promise<string[]> {
+	async getClubIds(tournamentId: string): Promise<string[]> {
 		const rows = this.db
-			.prepare('SELECT club_id FROM season_clubs WHERE season_id = ?')
-			.all(seasonId) as Array<{ club_id: string }>;
+			.prepare('SELECT club_id FROM tournament_clubs WHERE tournament_id = ?')
+			.all(tournamentId) as Array<{ club_id: string }>;
 		return rows.map((r) => r.club_id);
 	}
 
-	async assignClub(seasonId: string, clubId: string): Promise<void> {
+	async assignClub(tournamentId: string, clubId: string): Promise<void> {
 		this.db
-			.prepare('INSERT OR IGNORE INTO season_clubs (season_id, club_id) VALUES (?, ?)')
-			.run(seasonId, clubId);
+			.prepare('INSERT OR IGNORE INTO tournament_clubs (tournament_id, club_id) VALUES (?, ?)')
+			.run(tournamentId, clubId);
 	}
 
-	async removeClub(seasonId: string, clubId: string): Promise<void> {
+	async removeClub(tournamentId: string, clubId: string): Promise<void> {
 		this.db
-			.prepare('DELETE FROM season_clubs WHERE season_id = ? AND club_id = ?')
-			.run(seasonId, clubId);
+			.prepare('DELETE FROM tournament_clubs WHERE tournament_id = ? AND club_id = ?')
+			.run(tournamentId, clubId);
 	}
 }
 
@@ -208,9 +299,10 @@ export class SqliteSeasonRepository implements SeasonRepository {
 
 interface MatchRow {
 	id: string;
-	season_id: string;
+	tournament_id: string;
 	home_club_id: string;
 	away_club_id: string;
+	round: string | null;
 	scheduled_at: string | null;
 	status: 'scheduled' | 'in_progress' | 'completed';
 	home_legs_won: number;
@@ -232,9 +324,10 @@ export class SqliteMatchRepository implements MatchRepository {
 		}
 		return {
 			id: row.id,
-			season_id: row.season_id,
+			tournament_id: row.tournament_id,
 			home_club: homeClub,
 			away_club: awayClub,
+			round: row.round,
 			scheduled_at: row.scheduled_at,
 			status: row.status,
 			home_legs_won: row.home_legs_won,
@@ -248,10 +341,10 @@ export class SqliteMatchRepository implements MatchRepository {
 		return Promise.all(rows.map((r) => this.rowToMatch(r)));
 	}
 
-	async getBySeasonId(seasonId: string): Promise<Match[]> {
+	async getByTournamentId(tournamentId: string): Promise<Match[]> {
 		const rows = this.db
-			.prepare('SELECT * FROM matches WHERE season_id = ?')
-			.all(seasonId) as MatchRow[];
+			.prepare('SELECT * FROM matches WHERE tournament_id = ?')
+			.all(tournamentId) as MatchRow[];
 		return Promise.all(rows.map((r) => this.rowToMatch(r)));
 	}
 
@@ -267,14 +360,15 @@ export class SqliteMatchRepository implements MatchRepository {
 		const id = generateId();
 		this.db
 			.prepare(
-				`INSERT INTO matches (id, season_id, home_club_id, away_club_id, scheduled_at, status, home_legs_won, away_legs_won, completed_at)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+				`INSERT INTO matches (id, tournament_id, home_club_id, away_club_id, round, scheduled_at, status, home_legs_won, away_legs_won, completed_at)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 			)
 			.run(
 				id,
-				data.season_id,
+				data.tournament_id,
 				data.home_club.id,
 				data.away_club.id,
+				data.round,
 				data.scheduled_at,
 				data.status,
 				data.home_legs_won,
@@ -290,14 +384,15 @@ export class SqliteMatchRepository implements MatchRepository {
 		const updated: Match = { ...existing, ...data };
 		this.db
 			.prepare(
-				`UPDATE matches SET season_id = ?, home_club_id = ?, away_club_id = ?,
-				 scheduled_at = ?, status = ?, home_legs_won = ?, away_legs_won = ?, completed_at = ?
+				`UPDATE matches SET tournament_id = ?, home_club_id = ?, away_club_id = ?,
+				 round = ?, scheduled_at = ?, status = ?, home_legs_won = ?, away_legs_won = ?, completed_at = ?
 				 WHERE id = ?`
 			)
 			.run(
-				updated.season_id,
+				updated.tournament_id,
 				updated.home_club.id,
 				updated.away_club.id,
+				updated.round,
 				updated.scheduled_at,
 				updated.status,
 				updated.home_legs_won,
@@ -319,17 +414,17 @@ export class SqliteMatchRepository implements MatchRepository {
 export class SqliteStandingsService implements StandingsService {
 	constructor(
 		private matchRepo: MatchRepository,
-		private seasonRepo: SeasonRepository,
+		private tournamentRepo: TournamentRepository,
 		private clubRepo: ClubRepository
 	) {}
 
-	async getBySeasonId(seasonId: string): Promise<Standing[]> {
-		return this.recalculate(seasonId);
+	async getByTournamentId(tournamentId: string): Promise<Standing[]> {
+		return this.recalculate(tournamentId);
 	}
 
-	async recalculate(seasonId: string): Promise<Standing[]> {
-		const clubIds = await this.seasonRepo.getClubIds(seasonId);
-		const matches = await this.matchRepo.getBySeasonId(seasonId);
+	async recalculate(tournamentId: string): Promise<Standing[]> {
+		const clubIds = await this.tournamentRepo.getClubIds(tournamentId);
+		const matches = await this.matchRepo.getByTournamentId(tournamentId);
 		const completedMatches = matches.filter((m) => m.status === 'completed');
 
 		const standingsMap = new Map<string, Standing>();
@@ -338,11 +433,12 @@ export class SqliteStandingsService implements StandingsService {
 			const club = await this.clubRepo.getById(clubId);
 			if (!club) continue;
 			standingsMap.set(clubId, {
-				season_id: seasonId,
+				tournament_id: tournamentId,
 				club_id: clubId,
 				club_name: club.name,
 				short_name: club.short_name,
 				crest_url: club.crest_url,
+				has_crest: club.has_crest,
 				played: 0,
 				won: 0,
 				drawn: 0,

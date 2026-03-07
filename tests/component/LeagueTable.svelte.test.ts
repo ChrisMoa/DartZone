@@ -6,7 +6,8 @@ import type { Standing } from '$lib/types/league.js';
 
 const mockStandings: Standing[] = [
 	{
-		season_id: 's1',
+		tournament_id: 't1',
+		has_crest: false,
 		club_id: 'c1',
 		club_name: 'DC Bullseye Berlin',
 		short_name: 'BCB',
@@ -20,7 +21,8 @@ const mockStandings: Standing[] = [
 		points: 4
 	},
 	{
-		season_id: 's1',
+		tournament_id: 't1',
+		has_crest: false,
 		club_id: 'c2',
 		club_name: 'Triple Twenty Hamburg',
 		short_name: 'TTH',
@@ -34,7 +36,8 @@ const mockStandings: Standing[] = [
 		points: 2
 	},
 	{
-		season_id: 's1',
+		tournament_id: 't1',
+		has_crest: false,
 		club_id: 'c3',
 		club_name: 'Dart Devils Muenchen',
 		short_name: 'DDM',
@@ -48,7 +51,8 @@ const mockStandings: Standing[] = [
 		points: 1
 	},
 	{
-		season_id: 's1',
+		tournament_id: 't1',
+		has_crest: false,
 		club_id: 'c4',
 		club_name: 'Arrow Kings Koeln',
 		short_name: 'AKK',

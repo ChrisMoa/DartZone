@@ -20,12 +20,13 @@
 	let matchCompleted = $state(data.match.status === 'completed');
 	let homeLegsWon = $state(data.match.home_legs_won);
 	let awayLegsWon = $state(data.match.away_legs_won);
+	let softCheckout = $state(false);
 
 	let game = $state<GameStore | null>(null);
 	const animations = createAnimationStore();
 
 	const startingScore = $derived(
-		data.season.game_mode === '301' ? 301 : 501
+		data.tournament.game_mode === '301' ? 301 : 501
 	);
 
 	function startGame() {
@@ -38,7 +39,8 @@
 			leg_number: legNumber,
 			home_player: homePlayer,
 			away_player: awayPlayer,
-			starting_score: startingScore
+			starting_score: startingScore,
+			softCheckout
 		});
 		matchStarted = true;
 	}
@@ -79,7 +81,7 @@
 		}
 
 		// Check result for match completion
-		const legsToWin = Math.ceil(data.season.sets_per_match / 2);
+		const legsToWin = Math.ceil(data.tournament.sets_per_match / 2);
 		if (homeLegsWon >= legsToWin || awayLegsWon >= legsToWin) {
 			matchCompleted = true;
 			return;
@@ -92,14 +94,15 @@
 			leg_number: legNumber,
 			home_player: data.homePlayers[homePlayerIndex],
 			away_player: data.awayPlayers[awayPlayerIndex],
-			starting_score: startingScore
+			starting_score: startingScore,
+			softCheckout
 		});
 	}
 </script>
 
 <div class="flex flex-col gap-4" data-testid="game-page">
 	<div class="flex items-center gap-4">
-		<a href="/seasons/{data.season.id}" class="btn btn-ghost btn-sm">Zurueck</a>
+		<a href="/tournaments/{data.tournament.id}" class="btn btn-ghost btn-sm">Zurueck</a>
 		<h1 class="text-xl font-bold">
 			{data.match.home_club.short_name} vs {data.match.away_club.short_name}
 		</h1>
@@ -109,6 +112,8 @@
 	<div class="flex items-center justify-center gap-6 p-4 bg-base-100 rounded-lg shadow-sm" data-testid="match-score-header">
 		<div class="flex items-center gap-2">
 			<ClubCrest
+				club_id={data.match.home_club.id}
+				has_crest={data.match.home_club.has_crest}
 				crest_url={data.match.home_club.crest_url}
 				club_name={data.match.home_club.name}
 				primary_color={data.match.home_club.primary_color}
@@ -122,6 +127,8 @@
 		<div class="flex items-center gap-2">
 			<span class="font-bold">{data.match.away_club.short_name}</span>
 			<ClubCrest
+				club_id={data.match.away_club.id}
+				has_crest={data.match.away_club.has_crest}
 				crest_url={data.match.away_club.crest_url}
 				club_name={data.match.away_club.name}
 				primary_color={data.match.away_club.primary_color}
@@ -137,7 +144,7 @@
 				<p class="text-lg">
 					{homeLegsWon > awayLegsWon ? data.match.home_club.name : data.match.away_club.name} gewinnt!
 				</p>
-				<a href="/seasons/{data.season.id}" class="btn btn-primary mt-4">Zur Saison</a>
+				<a href="/tournaments/{data.tournament.id}" class="btn btn-primary mt-4">Zum Turnier</a>
 			</div>
 		</div>
 	{:else if !matchStarted}
@@ -163,7 +170,16 @@
 						</select>
 					</div>
 				</div>
-				<button class="btn btn-primary mt-4" onclick={startGame} data-testid="start-game-btn">
+				<div class="form-control mt-4">
+					<label class="label cursor-pointer justify-start gap-3">
+						<input type="checkbox" class="checkbox checkbox-primary" bind:checked={softCheckout} data-testid="soft-checkout-toggle" />
+						<div>
+							<span class="label-text font-medium">Einfaches Checkout</span>
+							<p class="text-xs text-base-content/60">Ueberwerfen erlaubt — kein exaktes Finish auf Doppel noetig</p>
+						</div>
+					</label>
+				</div>
+				<button class="btn btn-primary mt-2" onclick={startGame} data-testid="start-game-btn">
 					Spiel starten
 				</button>
 			</div>

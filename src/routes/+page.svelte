@@ -24,13 +24,13 @@
 </script>
 
 <div class="flex flex-col gap-8">
-	{#if data.activeSeason}
+	{#if data.activeTournament}
 		<div class="grid gap-6 lg:grid-cols-2">
 			<div class="card bg-base-100 shadow-sm">
 				<div class="card-body">
 					<div class="flex items-center justify-between">
-						<h2 class="card-title">{data.activeSeason.name}</h2>
-						<a href="/seasons/{data.activeSeason.id}" class="btn btn-ghost btn-sm">Details</a>
+						<h2 class="card-title">{data.activeTournament.name}</h2>
+						<a href="/tournaments/{data.activeTournament.id}" class="btn btn-ghost btn-sm">Details</a>
 					</div>
 					<LeagueTable standings={data.standings} />
 				</div>
@@ -86,8 +86,8 @@
 				</div>
 			{/if}
 			<div class="text-center">
-				<p class="text-base-content/60 mb-4">Keine aktive Saison vorhanden.</p>
-				<a href="/seasons/new" class="btn btn-primary">Saison erstellen</a>
+				<p class="text-base-content/60 mb-4">Kein aktives Turnier vorhanden.</p>
+				<a href="/tournaments/new" class="btn btn-primary">Turnier erstellen</a>
 			</div>
 		</div>
 	{/if}

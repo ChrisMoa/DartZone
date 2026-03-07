@@ -17,6 +17,8 @@
 >
 	<div class="card-body flex-row items-center gap-4">
 		<ClubCrest
+			club_id={club.id}
+			has_crest={club.has_crest}
 			crest_url={club.crest_url}
 			club_name={club.name}
 			primary_color={club.primary_color}

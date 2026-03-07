@@ -33,6 +33,13 @@ export const actions: Actions = {
 
 		const updated = await clubRepo.update(params.id, result.data);
 		if (!updated) throw error(404, 'Verein nicht gefunden');
+
+		const crestFile = formData.get('crest') as File | null;
+		if (crestFile && crestFile.size > 0) {
+			const buffer = Buffer.from(await crestFile.arrayBuffer());
+			await clubRepo.setCrestData(params.id, buffer, crestFile.type);
+		}
+
 		throw redirect(303, `/clubs/${params.id}`);
 	}
 };
