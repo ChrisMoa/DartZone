@@ -18,8 +18,9 @@ export default defineConfig({
 		}
 	],
 	webServer: {
-		command: 'npm run build && npm run preview',
+		command: 'DARTZONE_DB_PATH=data/test.db npm run build && DARTZONE_DB_PATH=data/test.db npm run preview',
 		port: 4173,
 		reuseExistingServer: !process.env.CI
-	}
+	},
+	globalSetup: './tests/e2e/global-setup.ts'
 });
