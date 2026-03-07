@@ -1,8 +1,8 @@
 import type { Club } from '$lib/types/club.js';
 import type { Player } from '$lib/types/club.js';
-import type { Season, Match } from '$lib/types/league.js';
+import type { Tournament, Match } from '$lib/types/league.js';
 
-export const seedClubs: Club[] = [
+export const seedClubs: Omit<Club, 'has_crest'>[] = [
 	{
 		id: 'club-1',
 		name: 'DC Bullseye Berlin',
@@ -60,63 +60,68 @@ export const seedPlayers: Player[] = [
 	{ id: 'player-8', club_id: 'club-4', first_name: 'Emma', last_name: 'Becker', nickname: null, created_at: '2025-02-10T10:00:00.000Z' }
 ];
 
-export const seedSeasons: Season[] = [
+export const seedTournaments: Tournament[] = [
 	{
-		id: 'season-1',
-		name: 'Saison 2025/26',
+		id: 'tournament-1',
+		name: 'Fruehjahrscup 2026',
 		game_mode: '501',
+		format: 'round_robin',
 		legs_per_set: 3,
 		sets_per_match: 5,
-		start_date: '2025-09-01',
-		end_date: '2026-06-30',
+		start_date: '2026-03-15',
+		end_date: null,
 		is_active: true
 	}
 ];
 
-export const seedSeasonClubs: Record<string, string[]> = {
-	'season-1': ['club-1', 'club-2', 'club-3', 'club-4']
+export const seedTournamentClubs: Record<string, string[]> = {
+	'tournament-1': ['club-1', 'club-2', 'club-3', 'club-4']
 };
 
 export const seedMatches: Match[] = [
 	{
 		id: 'match-1',
-		season_id: 'season-1',
-		home_club: seedClubs[0],
-		away_club: seedClubs[1],
-		scheduled_at: '2025-09-15T19:00:00.000Z',
+		tournament_id: 'tournament-1',
+		home_club: seedClubs[0] as Club,
+		away_club: seedClubs[1] as Club,
+		round: null,
+		scheduled_at: '2026-03-15T10:00:00.000Z',
 		status: 'completed',
 		home_legs_won: 3,
 		away_legs_won: 1,
-		completed_at: '2025-09-15T21:30:00.000Z'
+		completed_at: '2026-03-15T11:30:00.000Z'
 	},
 	{
 		id: 'match-2',
-		season_id: 'season-1',
-		home_club: seedClubs[2],
-		away_club: seedClubs[3],
-		scheduled_at: '2025-09-15T19:00:00.000Z',
+		tournament_id: 'tournament-1',
+		home_club: seedClubs[2] as Club,
+		away_club: seedClubs[3] as Club,
+		round: null,
+		scheduled_at: '2026-03-15T10:00:00.000Z',
 		status: 'completed',
 		home_legs_won: 2,
 		away_legs_won: 2,
-		completed_at: '2025-09-15T21:00:00.000Z'
+		completed_at: '2026-03-15T11:00:00.000Z'
 	},
 	{
 		id: 'match-3',
-		season_id: 'season-1',
-		home_club: seedClubs[1],
-		away_club: seedClubs[2],
-		scheduled_at: '2025-10-01T19:00:00.000Z',
+		tournament_id: 'tournament-1',
+		home_club: seedClubs[1] as Club,
+		away_club: seedClubs[2] as Club,
+		round: null,
+		scheduled_at: '2026-03-15T12:00:00.000Z',
 		status: 'completed',
 		home_legs_won: 3,
 		away_legs_won: 2,
-		completed_at: '2025-10-01T21:30:00.000Z'
+		completed_at: '2026-03-15T13:30:00.000Z'
 	},
 	{
 		id: 'match-4',
-		season_id: 'season-1',
-		home_club: seedClubs[3],
-		away_club: seedClubs[0],
-		scheduled_at: '2025-10-15T19:00:00.000Z',
+		tournament_id: 'tournament-1',
+		home_club: seedClubs[3] as Club,
+		away_club: seedClubs[0] as Club,
+		round: null,
+		scheduled_at: '2026-03-15T14:00:00.000Z',
 		status: 'scheduled',
 		home_legs_won: 0,
 		away_legs_won: 0,

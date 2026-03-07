@@ -33,6 +33,8 @@
 		<div class="flex items-center gap-3">
 			{#if data.club}
 				<ClubCrest
+					club_id={data.club.id}
+					has_crest={data.club.has_crest}
 					crest_url={data.club.crest_url}
 					club_name={data.club.name}
 					primary_color={data.club.primary_color}

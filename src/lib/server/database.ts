@@ -47,10 +47,10 @@ export function resetDatabase(dbPath?: string): Database.Database {
 
 	// Drop all tables and recreate
 	db.exec(`
-		DROP TABLE IF EXISTS season_clubs;
+		DROP TABLE IF EXISTS tournament_clubs;
 		DROP TABLE IF EXISTS matches;
 		DROP TABLE IF EXISTS players;
-		DROP TABLE IF EXISTS seasons;
+		DROP TABLE IF EXISTS tournaments;
 		DROP TABLE IF EXISTS clubs;
 	`);
 	db.exec(SCHEMA_SQL);

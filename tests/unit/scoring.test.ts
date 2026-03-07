@@ -90,6 +90,13 @@ describe('isBust', () => {
 		expect(isBust(501, 60, 3)).toBe(false);
 		expect(isBust(301, 25, 1)).toBe(false);
 	});
+
+	it('never busts in soft checkout mode', () => {
+		expect(isBust(30, 40, 2, true)).toBe(false);
+		expect(isBust(21, 20, 1, true)).toBe(false);
+		expect(isBust(20, 20, 1, true)).toBe(false);
+		expect(isBust(60, 60, 3, true)).toBe(false);
+	});
 });
 
 describe('isCheckout', () => {
@@ -106,5 +113,17 @@ describe('isCheckout', () => {
 	it('returns false when reaching 0 without double', () => {
 		expect(isCheckout(20, 20, 1)).toBe(false);
 		expect(isCheckout(60, 60, 3)).toBe(false);
+	});
+
+	it('returns true in soft checkout when remaining goes to 0 or below', () => {
+		expect(isCheckout(20, 20, 1, true)).toBe(true);
+		expect(isCheckout(60, 60, 3, true)).toBe(true);
+		expect(isCheckout(30, 40, 2, true)).toBe(true);
+		expect(isCheckout(10, 60, 3, true)).toBe(true);
+	});
+
+	it('returns false in soft checkout when remaining stays above 0', () => {
+		expect(isCheckout(100, 40, 2, true)).toBe(false);
+		expect(isCheckout(501, 60, 3, true)).toBe(false);
 	});
 });

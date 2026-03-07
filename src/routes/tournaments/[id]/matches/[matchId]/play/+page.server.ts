@@ -1,13 +1,13 @@
 import type { PageServerLoad, Actions } from './$types.js';
 import { error, fail } from '@sveltejs/kit';
-import { matchRepo, playerRepo, seasonRepo, standingsService } from '$lib/server/db.js';
+import { matchRepo, playerRepo, tournamentRepo, standingsService } from '$lib/server/db.js';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const match = await matchRepo.getById(params.matchId);
 	if (!match) throw error(404, 'Spiel nicht gefunden');
 
-	const season = await seasonRepo.getById(params.id);
-	if (!season) throw error(404, 'Saison nicht gefunden');
+	const tournament = await tournamentRepo.getById(params.id);
+	if (!tournament) throw error(404, 'Turnier nicht gefunden');
 
 	const [homePlayers, awayPlayers] = await Promise.all([
 		playerRepo.getByClubId(match.home_club.id),
@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	return {
 		match,
-		season,
+		tournament,
 		homePlayers,
 		awayPlayers
 	};
@@ -41,9 +41,8 @@ export const actions: Actions = {
 			update.away_legs_won = match.away_legs_won + 1;
 		}
 
-		// Check if match is complete based on season config
-		const season = await seasonRepo.getById(params.id);
-		const legsToWin = season ? Math.ceil(season.sets_per_match / 2) : 3;
+		const tournament = await tournamentRepo.getById(params.id);
+		const legsToWin = tournament ? Math.ceil(tournament.sets_per_match / 2) : 3;
 
 		const newHomeLegs = update.home_legs_won ?? match.home_legs_won;
 		const newAwayLegs = update.away_legs_won ?? match.away_legs_won;

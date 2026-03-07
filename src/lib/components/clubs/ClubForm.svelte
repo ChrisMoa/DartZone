@@ -14,13 +14,55 @@
 	let primary_color = $state(club?.primary_color ?? '#1a5276');
 	let secondary_color = $state(club?.secondary_color ?? '#ffffff');
 	let contact_email = $state(club?.contact_email ?? '');
+	let crestPreview = $state<string | null>(null);
+
+	function handleCrestChange(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (file) {
+			const reader = new FileReader();
+			reader.onload = () => {
+				crestPreview = reader.result as string;
+			};
+			reader.readAsDataURL(file);
+		} else {
+			crestPreview = null;
+		}
+	}
 </script>
 
-<form method="POST" class="flex flex-col gap-4" data-testid="club-form">
+<form method="POST" enctype="multipart/form-data" class="flex flex-col gap-4" data-testid="club-form">
 	<div class="flex items-center gap-4">
-		<ClubCrest crest_url={null} club_name={name || 'Neuer Verein'} {primary_color} size={64} />
+		{#if crestPreview}
+			<img
+				src={crestPreview}
+				alt="Wappen Vorschau"
+				class="rounded-full object-cover"
+				style="width: 64px; height: 64px;"
+			/>
+		{:else}
+			<ClubCrest
+				club_id={club?.id}
+				has_crest={club?.has_crest}
+				crest_url={club?.crest_url}
+				club_name={name || 'Neuer Verein'}
+				{primary_color}
+				size={64}
+			/>
+		{/if}
 		<div class="flex-1">
 			<h2 class="text-lg font-semibold">{club ? 'Verein bearbeiten' : 'Neuer Verein'}</h2>
+			<label class="btn btn-xs btn-outline mt-1">
+				Wappen hochladen
+				<input
+					type="file"
+					name="crest"
+					accept="image/png,image/jpeg,image/svg+xml,image/webp"
+					class="hidden"
+					onchange={handleCrestChange}
+					data-testid="club-form-crest"
+				/>
+			</label>
 		</div>
 	</div>
 

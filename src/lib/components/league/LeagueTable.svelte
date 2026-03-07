@@ -32,6 +32,8 @@
 					<td>
 						<div class="flex items-center gap-2">
 							<ClubCrest
+								club_id={standing.club_id}
+								has_crest={standing.has_crest}
 								crest_url={standing.crest_url}
 								club_name={standing.club_name}
 								primary_color="#666"

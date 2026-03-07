@@ -5,10 +5,10 @@
 	interface Props {
 		match: Match;
 		showPlayLink?: boolean;
-		seasonId?: string;
+		tournamentId?: string;
 	}
 
-	let { match, showPlayLink = false, seasonId }: Props = $props();
+	let { match, showPlayLink = false, tournamentId }: Props = $props();
 
 	const statusLabel = $derived(
 		match.status === 'completed'
@@ -42,6 +42,8 @@
 		<div class="flex items-center justify-between gap-4">
 			<div class="flex items-center gap-2 flex-1 min-w-0">
 				<ClubCrest
+					club_id={match.home_club.id}
+					has_crest={match.home_club.has_crest}
 					crest_url={match.home_club.crest_url}
 					club_name={match.home_club.name}
 					primary_color={match.home_club.primary_color}
@@ -63,6 +65,8 @@
 			<div class="flex items-center gap-2 flex-1 min-w-0 justify-end">
 				<span class="font-medium truncate" data-testid="match-away-name">{match.away_club.short_name}</span>
 				<ClubCrest
+					club_id={match.away_club.id}
+					has_crest={match.away_club.has_crest}
 					crest_url={match.away_club.crest_url}
 					club_name={match.away_club.name}
 					primary_color={match.away_club.primary_color}
@@ -73,9 +77,9 @@
 
 		<div class="text-center mt-1 flex items-center justify-center gap-2">
 			<span class="badge badge-sm {statusClass}">{statusLabel}</span>
-			{#if showPlayLink && seasonId && match.status !== 'completed'}
+			{#if showPlayLink && tournamentId && match.status !== 'completed'}
 				<a
-					href="/seasons/{seasonId}/matches/{match.id}/play"
+					href="/tournaments/{tournamentId}/matches/{match.id}/play"
 					class="btn btn-xs btn-primary"
 					data-testid="play-match-btn"
 				>

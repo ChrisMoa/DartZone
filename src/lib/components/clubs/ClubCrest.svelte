@@ -1,12 +1,20 @@
 <script lang="ts">
 	interface Props {
-		crest_url: string | null;
+		club_id?: string;
+		crest_url?: string | null;
+		has_crest?: boolean;
 		club_name: string;
 		primary_color: string;
 		size?: number;
 	}
 
-	let { crest_url, club_name, primary_color, size = 48 }: Props = $props();
+	let { club_id, crest_url, has_crest = false, club_name, primary_color, size = 48 }: Props = $props();
+
+	const imgSrc = $derived(
+		has_crest && club_id
+			? `/api/clubs/${club_id}/crest`
+			: crest_url ?? null
+	);
 
 	const initials = $derived(
 		club_name
@@ -18,9 +26,9 @@
 	);
 </script>
 
-{#if crest_url}
+{#if imgSrc}
 	<img
-		src={crest_url}
+		src={imgSrc}
 		alt="{club_name} Wappen"
 		width={size}
 		height={size}

@@ -26,6 +26,13 @@ export const actions: Actions = {
 		}
 
 		const club = await clubRepo.create(result.data);
+
+		const crestFile = formData.get('crest') as File | null;
+		if (crestFile && crestFile.size > 0) {
+			const buffer = Buffer.from(await crestFile.arrayBuffer());
+			await clubRepo.setCrestData(club.id, buffer, crestFile.type);
+		}
+
 		throw redirect(303, `/clubs/${club.id}`);
 	}
 };

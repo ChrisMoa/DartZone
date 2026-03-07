@@ -2,19 +2,19 @@ import { getDatabase } from './database.js';
 import {
 	SqliteClubRepository,
 	SqlitePlayerRepository,
-	SqliteSeasonRepository,
+	SqliteTournamentRepository,
 	SqliteMatchRepository,
 	SqliteStandingsService
 } from './sqlite-repository.js';
-import { seedClubs, seedPlayers, seedSeasons, seedSeasonClubs, seedMatches } from './seed.js';
+import { seedClubs, seedPlayers, seedTournaments, seedTournamentClubs, seedMatches } from './seed.js';
 
 const db = getDatabase();
 
 export const clubRepo = new SqliteClubRepository(db);
 export const playerRepo = new SqlitePlayerRepository(db);
-export const seasonRepo = new SqliteSeasonRepository(db);
+export const tournamentRepo = new SqliteTournamentRepository(db);
 export const matchRepo = new SqliteMatchRepository(db, clubRepo);
-export const standingsService = new SqliteStandingsService(matchRepo, seasonRepo, clubRepo);
+export const standingsService = new SqliteStandingsService(matchRepo, tournamentRepo, clubRepo);
 
 // Auto-seed on first run (empty database)
 const clubCount = db.prepare('SELECT COUNT(*) as count FROM clubs').get() as { count: number };
@@ -31,16 +31,16 @@ function seedDatabase(): void {
 		`INSERT INTO players (id, club_id, first_name, last_name, nickname, created_at)
 		 VALUES (@id, @club_id, @first_name, @last_name, @nickname, @created_at)`
 	);
-	const insertSeason = db.prepare(
-		`INSERT INTO seasons (id, name, game_mode, legs_per_set, sets_per_match, start_date, end_date, is_active)
-		 VALUES (@id, @name, @game_mode, @legs_per_set, @sets_per_match, @start_date, @end_date, @is_active)`
+	const insertTournament = db.prepare(
+		`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, is_active)
+		 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @is_active)`
 	);
-	const insertSeasonClub = db.prepare(
-		`INSERT INTO season_clubs (season_id, club_id) VALUES (?, ?)`
+	const insertTournamentClub = db.prepare(
+		`INSERT INTO tournament_clubs (tournament_id, club_id) VALUES (?, ?)`
 	);
 	const insertMatch = db.prepare(
-		`INSERT INTO matches (id, season_id, home_club_id, away_club_id, scheduled_at, status, home_legs_won, away_legs_won, completed_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		`INSERT INTO matches (id, tournament_id, home_club_id, away_club_id, round, scheduled_at, status, home_legs_won, away_legs_won, completed_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	);
 
 	const seed = db.transaction(() => {
@@ -50,20 +50,21 @@ function seedDatabase(): void {
 		for (const player of seedPlayers) {
 			insertPlayer.run(player);
 		}
-		for (const season of seedSeasons) {
-			insertSeason.run({ ...season, is_active: season.is_active ? 1 : 0 });
+		for (const tournament of seedTournaments) {
+			insertTournament.run({ ...tournament, is_active: tournament.is_active ? 1 : 0 });
 		}
-		for (const [seasonId, clubIds] of Object.entries(seedSeasonClubs)) {
+		for (const [tournamentId, clubIds] of Object.entries(seedTournamentClubs)) {
 			for (const clubId of clubIds) {
-				insertSeasonClub.run(seasonId, clubId);
+				insertTournamentClub.run(tournamentId, clubId);
 			}
 		}
 		for (const match of seedMatches) {
 			insertMatch.run(
 				match.id,
-				match.season_id,
+				match.tournament_id,
 				match.home_club.id,
 				match.away_club.id,
+				match.round,
 				match.scheduled_at,
 				match.status,
 				match.home_legs_won,
