@@ -15,7 +15,14 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	const availableClubs = allClubs.filter((c) => !assignedClubIds.includes(c.id));
 
-	return { tournament, standings, matches, availableClubs, assignedClubIds };
+	// Check if round-robin pairings are incomplete (new clubs added after generation)
+	let hasMissingPairings = false;
+	if (tournament.format === 'round_robin' && assignedClubIds.length >= 2 && matches.length > 0) {
+		const expectedPairs = (assignedClubIds.length * (assignedClubIds.length - 1)) / 2;
+		hasMissingPairings = matches.length < expectedPairs;
+	}
+
+	return { tournament, standings, matches, availableClubs, assignedClubIds, hasMissingPairings };
 };
 
 export const actions: Actions = {
@@ -76,14 +83,29 @@ export const actions: Actions = {
 		if (clubIds.length < 2) return fail(400, { error: 'Mindestens 2 Vereine erforderlich' });
 
 		const existingMatches = await matchRepo.getByTournamentId(params.id);
-		if (existingMatches.length > 0) return fail(400, { error: 'Es existieren bereits Spiele' });
+
+		// For knockout, only generate when no matches exist
+		if (tournament.format === 'knockout' && existingMatches.length > 0) {
+			return fail(400, { error: 'K.O.-Paarungen koennen nicht aktualisiert werden' });
+		}
 
 		const clubs = await Promise.all(clubIds.map((id) => clubRepo.getById(id)));
 		const validClubs = clubs.filter((c) => c !== null);
 
 		if (tournament.format === 'round_robin') {
+			// Build set of existing pairings to avoid duplicates
+			const existingPairs = new Set(
+				existingMatches.map((m) => {
+					const ids = [m.home_club.id, m.away_club.id].sort();
+					return `${ids[0]}:${ids[1]}`;
+				})
+			);
+
 			for (let i = 0; i < validClubs.length; i++) {
 				for (let j = i + 1; j < validClubs.length; j++) {
+					const pairKey = [validClubs[i].id, validClubs[j].id].sort().join(':');
+					if (existingPairs.has(pairKey)) continue;
+
 					await matchRepo.create({
 						tournament_id: params.id,
 						home_club: validClubs[i],

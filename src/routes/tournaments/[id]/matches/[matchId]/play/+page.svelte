@@ -25,6 +25,12 @@
 	let game = $state<GameStore | null>(null);
 	const animations = createAnimationStore();
 
+	$effect(() => {
+		if (game) {
+			game.setSoftCheckout(softCheckout);
+		}
+	});
+
 	const startingScore = $derived(
 		data.tournament.game_mode === '301' ? 301 : 501
 	);
@@ -59,44 +65,58 @@
 		game.undoLastThrow();
 	}
 
+	let legSaving = $state(false);
+
 	async function handleLegComplete() {
 		if (!game || game.status !== 'completed' || !game.winner_player_id) return;
+		if (legSaving) return;
 
+		legSaving = true;
 		const winnerSide = game.winner_player_id === game.home_player.id ? 'home' : 'away';
 
-		const formData = new FormData();
-		formData.set('winner_side', winnerSide);
+		try {
+			const formData = new FormData();
+			formData.set('winner_side', winnerSide);
 
-		const response = await fetch('?/completeLeg', {
-			method: 'POST',
-			body: formData
-		});
+			const response = await fetch('?/completeLeg', {
+				method: 'POST',
+				body: formData,
+				headers: { 'x-sveltekit-action': 'true' }
+			});
 
-		const result = await response.json();
+			if (!response.ok) {
+				console.error('Failed to save leg result:', response.status);
+				return;
+			}
 
-		if (winnerSide === 'home') {
-			homeLegsWon++;
-		} else {
-			awayLegsWon++;
+			if (winnerSide === 'home') {
+				homeLegsWon++;
+			} else {
+				awayLegsWon++;
+			}
+
+			// Check for match completion
+			const legsToWin = Math.ceil(data.tournament.sets_per_match / 2);
+			if (homeLegsWon >= legsToWin || awayLegsWon >= legsToWin) {
+				matchCompleted = true;
+				return;
+			}
+
+			// Start next leg
+			legNumber++;
+			game = createGameState({
+				match_id: data.match.id,
+				leg_number: legNumber,
+				home_player: data.homePlayers[homePlayerIndex],
+				away_player: data.awayPlayers[awayPlayerIndex],
+				starting_score: startingScore,
+				softCheckout
+			});
+		} catch (err) {
+			console.error('Error saving leg result:', err);
+		} finally {
+			legSaving = false;
 		}
-
-		// Check result for match completion
-		const legsToWin = Math.ceil(data.tournament.sets_per_match / 2);
-		if (homeLegsWon >= legsToWin || awayLegsWon >= legsToWin) {
-			matchCompleted = true;
-			return;
-		}
-
-		// Start next leg
-		legNumber++;
-		game = createGameState({
-			match_id: data.match.id,
-			leg_number: legNumber,
-			home_player: data.homePlayers[homePlayerIndex],
-			away_player: data.awayPlayers[awayPlayerIndex],
-			starting_score: startingScore,
-			softCheckout
-		});
 	}
 </script>
 
@@ -203,7 +223,7 @@
 					disabled={game.status === 'completed'}
 					onhit={handleHit}
 				/>
-				<div class="flex gap-2">
+				<div class="flex flex-wrap items-center gap-2">
 					<button
 						class="btn btn-outline btn-sm"
 						onclick={handleUndo}
@@ -216,11 +236,19 @@
 						<button
 							class="btn btn-primary btn-sm"
 							onclick={handleLegComplete}
+							disabled={legSaving}
 							data-testid="next-leg-btn"
 						>
-							Naechstes Leg
+							{#if legSaving}
+								<span class="loading loading-spinner loading-xs"></span>
+							{/if}
+							Leg bestaetigen
 						</button>
 					{/if}
+					<label class="label cursor-pointer gap-2 ml-auto">
+						<span class="label-text text-xs">Einfaches Checkout</span>
+						<input type="checkbox" class="toggle toggle-primary toggle-sm" bind:checked={softCheckout} data-testid="soft-checkout-toggle" />
+					</label>
 				</div>
 			</div>
 
