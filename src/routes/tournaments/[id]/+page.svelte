@@ -70,11 +70,17 @@
 		<div class="card-body">
 			<div class="flex items-center justify-between">
 				<h2 class="card-title">Spiele</h2>
-				{#if data.assignedClubIds.length >= 2 && data.matches.length === 0}
+				{#if data.assignedClubIds.length >= 2}
 					<form method="POST" action="?/generatePairings">
-						<button type="submit" class="btn btn-sm btn-secondary" data-testid="generate-pairings-btn">
-							Paarungen generieren
-						</button>
+						{#if data.matches.length === 0}
+							<button type="submit" class="btn btn-sm btn-secondary" data-testid="generate-pairings-btn">
+								Paarungen generieren
+							</button>
+						{:else if data.hasMissingPairings}
+							<button type="submit" class="btn btn-sm btn-secondary btn-outline" data-testid="update-pairings-btn">
+								Paarungen aktualisieren
+							</button>
+						{/if}
 					</form>
 				{/if}
 			</div>

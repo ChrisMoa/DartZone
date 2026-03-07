@@ -51,6 +51,23 @@
 	<div class="card bg-base-100 shadow-sm">
 		<div class="card-body">
 			<h2 class="card-title">Spieler ({data.players.length})</h2>
+
+			<form method="POST" action="?/addPlayer" class="flex flex-wrap items-end gap-2 mb-4">
+				<div class="form-control">
+					<label class="label text-xs" for="first_name">Vorname</label>
+					<input id="first_name" name="first_name" type="text" class="input input-bordered input-sm" required />
+				</div>
+				<div class="form-control">
+					<label class="label text-xs" for="last_name">Nachname</label>
+					<input id="last_name" name="last_name" type="text" class="input input-bordered input-sm" required />
+				</div>
+				<div class="form-control">
+					<label class="label text-xs" for="nickname">Spitzname</label>
+					<input id="nickname" name="nickname" type="text" class="input input-bordered input-sm" />
+				</div>
+				<button type="submit" class="btn btn-primary btn-sm" data-testid="add-player-btn">Hinzufuegen</button>
+			</form>
+
 			{#if data.players.length === 0}
 				<p class="text-base-content/60">Keine Spieler registriert.</p>
 			{:else}
@@ -60,6 +77,7 @@
 							<tr>
 								<th>Name</th>
 								<th>Spitzname</th>
+								<th></th>
 							</tr>
 						</thead>
 						<tbody>
@@ -67,6 +85,12 @@
 								<tr>
 									<td>{player.first_name} {player.last_name}</td>
 									<td>{player.nickname ?? '-'}</td>
+									<td>
+										<form method="POST" action="?/deletePlayer">
+											<input type="hidden" name="player_id" value={player.id} />
+											<button type="submit" class="btn btn-ghost btn-xs text-error">Entfernen</button>
+										</form>
+									</td>
 								</tr>
 							{/each}
 						</tbody>

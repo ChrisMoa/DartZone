@@ -11,7 +11,7 @@ export function createGameState(config: {
 	starting_score: number;
 	softCheckout?: boolean;
 }) {
-	const softCheckout = config.softCheckout ?? false;
+	let softCheckout = $state(config.softCheckout ?? false);
 	let id = $state(crypto.randomUUID());
 	let match_id = $state(config.match_id);
 	let leg_number = $state(config.leg_number);
@@ -223,6 +223,7 @@ export function createGameState(config: {
 		get awayAverage() { return awayAverage; },
 		get checkoutRoute() { return checkoutRoute; },
 		get softCheckout() { return softCheckout; },
+		setSoftCheckout(value: boolean) { softCheckout = value; },
 		registerThrow,
 		undoLastThrow,
 		getState
