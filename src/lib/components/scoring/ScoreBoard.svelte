@@ -1,22 +1,21 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
+	import { getContext } from 'svelte';
 	import type { GameStore } from '$lib/stores/game.svelte.js';
+	import type { SettingsStore } from '$lib/stores/settings.svelte.js';
 
 	interface Props {
 		game: GameStore;
 	}
 
 	let { game }: Props = $props();
+	const settingsStore = getContext<SettingsStore>('settings');
 
 	const homeActive = $derived(game.current_player_id === game.home_player.id);
 	const awayActive = $derived(game.current_player_id === game.away_player.id);
 
 	// --- Elapsed leg timer ---
-	const TIMER_STORAGE_KEY = 'dartzone_timer_enabled';
-
-	let timerEnabled = $state(
-		browser ? (localStorage.getItem(TIMER_STORAGE_KEY) ?? 'true') !== 'false' : true
-	);
+	let timerEnabled = $state(settingsStore.settings.timerEnabled);
 	let elapsedSeconds = $state(0);
 	let timerStarted = $state(false);
 	let intervalId = $state<ReturnType<typeof setInterval> | null>(null);
@@ -82,7 +81,7 @@
 
 	function toggleTimer() {
 		timerEnabled = !timerEnabled;
-		if (browser) localStorage.setItem(TIMER_STORAGE_KEY, timerEnabled ? 'true' : 'false');
+		settingsStore.update('timerEnabled', timerEnabled);
 		if (!timerEnabled) stopTimer();
 		else if (timerStarted && game.status !== 'completed') startTimer();
 	}
