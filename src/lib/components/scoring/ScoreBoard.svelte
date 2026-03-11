@@ -90,7 +90,7 @@
 
 <div class="grid grid-cols-3 gap-2" data-testid="scoreboard">
 	<div
-		class="card p-4 text-center transition-all duration-300 {homeActive ? 'bg-primary text-primary-content ring-2 ring-primary shadow-lg shadow-primary/20' : 'bg-base-100'}"
+		class="card p-4 text-center transition-all duration-300 {homeActive ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-content ring-2 ring-primary shadow-lg shadow-primary/30' : 'bg-base-100'}"
 		data-testid="scoreboard-home"
 	>
 		<div class="text-sm font-medium truncate" data-testid="scoreboard-home-name">
@@ -140,7 +140,7 @@
 	</div>
 
 	<div
-		class="card p-4 text-center transition-all duration-300 {awayActive ? 'bg-secondary text-secondary-content ring-2 ring-secondary shadow-lg shadow-secondary/20' : 'bg-base-100'}"
+		class="card p-4 text-center transition-all duration-300 {awayActive ? 'bg-gradient-to-br from-secondary to-secondary/80 text-secondary-content ring-2 ring-secondary shadow-lg shadow-secondary/30' : 'bg-base-100'}"
 		data-testid="scoreboard-away"
 	>
 		<div class="text-sm font-medium truncate" data-testid="scoreboard-away-name">
