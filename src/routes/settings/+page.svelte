@@ -593,4 +593,9 @@
 			</button>
 		</div>
 	</div>
+
+	<!-- Version -->
+	<div class="text-center text-xs text-base-content/40 py-4" data-testid="app-version">
+		DartZone v{__APP_VERSION__}
+	</div>
 </div>
