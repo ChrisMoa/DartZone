@@ -6,6 +6,8 @@
 	import CheckoutHelper from '$lib/components/scoring/CheckoutHelper.svelte';
 	import AnimationOverlay from '$lib/components/animations/AnimationOverlay.svelte';
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
+	import PlayerStatsCard from '$lib/components/scoring/PlayerStatsCard.svelte';
+	import type { PlayerStats } from '$lib/components/scoring/PlayerStatsCard.svelte';
 	import { createGameState, type GameStore } from '$lib/stores/game.svelte.js';
 	import { createAnimationStore } from '$lib/stores/animation.svelte.js';
 	import type { Multiplier, SectorValue } from '$lib/types/game.js';
@@ -25,6 +27,42 @@
 	let game = $state<GameStore | null>(null);
 	const animations = createAnimationStore();
 
+	// Player stats for the selection screen
+	let homeStats = $state<PlayerStats | null>(null);
+	let awayStats = $state<PlayerStats | null>(null);
+	let homeStatsLoading = $state(false);
+	let awayStatsLoading = $state(false);
+
+	async function fetchPlayerStats(playerId: string): Promise<PlayerStats | null> {
+		try {
+			const res = await fetch(`/api/players/${playerId}/stats`);
+			if (!res.ok) return null;
+			return await res.json();
+		} catch {
+			return null;
+		}
+	}
+
+	$effect(() => {
+		const player = data.homePlayers[homePlayerIndex];
+		if (!player || matchStarted) return;
+		homeStatsLoading = true;
+		fetchPlayerStats(player.id).then((s) => {
+			homeStats = s;
+			homeStatsLoading = false;
+		});
+	});
+
+	$effect(() => {
+		const player = data.awayPlayers[awayPlayerIndex];
+		if (!player || matchStarted) return;
+		awayStatsLoading = true;
+		fetchPlayerStats(player.id).then((s) => {
+			awayStats = s;
+			awayStatsLoading = false;
+		});
+	});
+
 	$effect(() => {
 		if (game) {
 			game.setSoftCheckout(softCheckout);
@@ -34,6 +72,17 @@
 	const startingScore = $derived(
 		data.tournament.game_mode === '301' ? 301 : 501
 	);
+
+	function playerLabel(player: Player, stats: PlayerStats | null): string {
+		let label = `${player.first_name} ${player.last_name}`;
+		if (player.nickname) label += ` (${player.nickname})`;
+		if (stats?.average != null) {
+			label += ` — ⌀ ${stats.average.toFixed(1)}`;
+		} else {
+			label += ' — keine Spiele';
+		}
+		return label;
+	}
 
 	function startGame() {
 		const homePlayer = data.homePlayers[homePlayerIndex];
@@ -177,17 +226,37 @@
 						<label class="label text-sm" for="home-player">Heim</label>
 						<select id="home-player" class="select select-bordered" bind:value={homePlayerIndex} data-testid="home-player-select">
 							{#each data.homePlayers as player, i (player.id)}
-								<option value={i}>{player.first_name} {player.last_name}</option>
+								<option value={i}>{playerLabel(player, null)}</option>
 							{/each}
 						</select>
+						{#if data.homePlayers[homePlayerIndex]}
+							<div class="mt-2">
+								<PlayerStatsCard
+									player={data.homePlayers[homePlayerIndex]}
+									clubName={data.match.home_club.name}
+									stats={homeStats}
+									loading={homeStatsLoading}
+								/>
+							</div>
+						{/if}
 					</div>
 					<div class="form-control">
 						<label class="label text-sm" for="away-player">Gast</label>
 						<select id="away-player" class="select select-bordered" bind:value={awayPlayerIndex} data-testid="away-player-select">
 							{#each data.awayPlayers as player, i (player.id)}
-								<option value={i}>{player.first_name} {player.last_name}</option>
+								<option value={i}>{playerLabel(player, null)}</option>
 							{/each}
 						</select>
+						{#if data.awayPlayers[awayPlayerIndex]}
+							<div class="mt-2">
+								<PlayerStatsCard
+									player={data.awayPlayers[awayPlayerIndex]}
+									clubName={data.match.away_club.name}
+									stats={awayStats}
+									loading={awayStatsLoading}
+								/>
+							</div>
+						{/if}
 					</div>
 				</div>
 				<div class="form-control mt-4">

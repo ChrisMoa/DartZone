@@ -40,6 +40,10 @@ data/
 
 # Misc
 *.log
+
+# Deployment config (contains server address)
+.env.deploy
+!.env.deploy.example
 *.tsbuildinfo
 CLAUDE.md
 DartZone_ImplementationPlan.md
