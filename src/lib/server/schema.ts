@@ -63,4 +63,13 @@ CREATE TABLE IF NOT EXISTS matches (
 	FOREIGN KEY (home_club_id) REFERENCES clubs(id) ON DELETE CASCADE,
 	FOREIGN KEY (away_club_id) REFERENCES clubs(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS animation_assets (
+	event TEXT PRIMARY KEY,
+	data BLOB NOT NULL,
+	mime TEXT NOT NULL,
+	duration_ms INTEGER NOT NULL DEFAULT 2000,
+	position TEXT NOT NULL DEFAULT 'center',
+	created_at TEXT NOT NULL
+);
 `;

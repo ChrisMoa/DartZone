@@ -46,6 +46,22 @@ export interface MatchRepository {
 	delete(id: string): Promise<boolean>;
 }
 
+export interface AnimationAsset {
+	event: string;
+	mime: string;
+	duration_ms: number;
+	position: 'center' | 'top' | 'bottom';
+	created_at: string;
+}
+
+export interface AnimationAssetRepository {
+	getAll(): Promise<AnimationAsset[]>;
+	getByEvent(event: string): Promise<AnimationAsset | null>;
+	getData(event: string): Promise<{ data: Buffer; mime: string } | null>;
+	upsert(event: string, data: Buffer, mime: string, duration_ms: number, position: string): Promise<AnimationAsset>;
+	delete(event: string): Promise<boolean>;
+}
+
 export interface StandingsService {
 	getByTournamentId(tournamentId: string): Promise<Standing[]>;
 	recalculate(tournamentId: string): Promise<Standing[]>;
