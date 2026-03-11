@@ -14,7 +14,6 @@
 	}
 
 	// Export/Import
-	let importText = $state('');
 	let importError = $state('');
 	let importSuccess = $state(false);
 
@@ -174,19 +173,30 @@
 		URL.revokeObjectURL(url);
 	}
 
-	function handleImport() {
+	function handleImportFile(fileInput: HTMLInputElement) {
 		importError = '';
 		importSuccess = false;
-		if (!importText.trim()) {
-			importError = 'Bitte JSON einfuegen';
+		const file = fileInput.files?.[0];
+		if (!file) {
+			importError = 'Bitte eine JSON-Datei auswaehlen';
 			return;
 		}
-		if (store.importJSON(importText)) {
-			importSuccess = true;
-			importText = '';
-		} else {
-			importError = 'Ungueltiges JSON-Format';
-		}
+		const reader = new FileReader();
+		reader.onload = () => {
+			const text = reader.result as string;
+			if (store.importJSON(text)) {
+				importSuccess = true;
+				setTimeout(() => { importSuccess = false; }, 3000);
+			} else {
+				importError = 'Ungueltiges JSON-Format';
+			}
+			fileInput.value = '';
+		};
+		reader.onerror = () => {
+			importError = 'Fehler beim Lesen der Datei';
+			fileInput.value = '';
+		};
+		reader.readAsText(file);
 	}
 </script>
 
@@ -575,22 +585,21 @@
 			<div class="divider-gradient my-3"></div>
 
 			<h3 class="font-medium text-sm mb-2">Importieren</h3>
-			<textarea
-				class="textarea textarea-bordered w-full text-xs font-mono"
-				rows="3"
-				placeholder="JSON-Einstellungen hier einfuegen..."
-				bind:value={importText}
-				data-testid="import-textarea"
-			></textarea>
+			<div class="flex flex-wrap gap-2 items-end">
+				<input
+					type="file"
+					accept=".json"
+					class="file-input file-input-bordered file-input-sm flex-1 min-w-0"
+					data-testid="import-file"
+					onchange={(e) => handleImportFile(e.target as HTMLInputElement)}
+				/>
+			</div>
 			{#if importError}
-				<span class="text-error text-xs">{importError}</span>
+				<span class="text-error text-xs mt-1">{importError}</span>
 			{/if}
 			{#if importSuccess}
-				<span class="text-success text-xs">Einstellungen importiert!</span>
+				<span class="text-success text-xs mt-1">Einstellungen importiert!</span>
 			{/if}
-			<button class="btn btn-outline btn-sm mt-1" onclick={handleImport} data-testid="import-settings">
-				Importieren
-			</button>
 		</div>
 	</div>
 
