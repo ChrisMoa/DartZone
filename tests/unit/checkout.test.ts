@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getCheckoutRoute, formatCheckoutRoute } from '$lib/utils/checkout.js';
+import { getCheckoutRoute, getCheckoutRoutes, formatCheckoutRoute } from '$lib/utils/checkout.js';
 
 describe('Checkout Route Calculator', () => {
 	describe('getCheckoutRoute', () => {
@@ -95,6 +95,79 @@ describe('Checkout Route Calculator', () => {
 					expect(route, `Score ${i} should be impossible`).toBeNull();
 				} else {
 					expect(route, `Score ${i} should have a checkout`).not.toBeNull();
+				}
+			}
+		});
+	});
+
+	describe('getCheckoutRoutes (multiple routes)', () => {
+		it('returns empty array for impossible scores', () => {
+			expect(getCheckoutRoutes(0)).toEqual([]);
+			expect(getCheckoutRoutes(1)).toEqual([]);
+			expect(getCheckoutRoutes(169)).toEqual([]);
+			expect(getCheckoutRoutes(171)).toEqual([]);
+		});
+
+		it('returns 1 route for D1 (2) - only one way', () => {
+			const routes = getCheckoutRoutes(2);
+			expect(routes.length).toBe(1);
+			expect(routes[0].length).toBe(1);
+			expect(routes[0][0].label).toBe('D1');
+		});
+
+		it('returns multiple routes for scores with alternatives', () => {
+			const routes = getCheckoutRoutes(60);
+			expect(routes.length).toBeGreaterThan(1);
+			expect(routes.length).toBeLessThanOrEqual(3);
+		});
+
+		it('respects maxRoutes parameter', () => {
+			const routes1 = getCheckoutRoutes(100, 1);
+			expect(routes1.length).toBe(1);
+
+			const routes5 = getCheckoutRoutes(100, 5);
+			expect(routes5.length).toBeLessThanOrEqual(5);
+			expect(routes5.length).toBeGreaterThanOrEqual(1);
+		});
+
+		it('sorts routes by fewest darts first', () => {
+			const routes = getCheckoutRoutes(40, 3);
+			// D20 (1-dart) should come before any 2-dart route
+			expect(routes[0].length).toBe(1);
+			for (let i = 1; i < routes.length; i++) {
+				expect(routes[i].length).toBeGreaterThanOrEqual(routes[i - 1].length);
+			}
+		});
+
+		it('all routes end on a double', () => {
+			for (let remaining = 2; remaining <= 170; remaining++) {
+				const routes = getCheckoutRoutes(remaining);
+				for (const route of routes) {
+					const lastDart = route[route.length - 1];
+					expect(lastDart.multiplier, `Score ${remaining}: route should end on double`).toBe(2);
+					const total = route.reduce((sum, d) => sum + d.score, 0);
+					expect(total, `Score ${remaining}: route total should match`).toBe(remaining);
+				}
+			}
+		});
+
+		it('returns no duplicate routes', () => {
+			for (let remaining = 2; remaining <= 170; remaining++) {
+				const routes = getCheckoutRoutes(remaining);
+				const labels = routes.map((r) => r.map((d) => d.label).join(' '));
+				const unique = new Set(labels);
+				expect(unique.size, `Score ${remaining}: routes should be unique`).toBe(labels.length);
+			}
+		});
+
+		it('first route matches getCheckoutRoute', () => {
+			for (let remaining = 2; remaining <= 170; remaining++) {
+				const single = getCheckoutRoute(remaining);
+				const multiple = getCheckoutRoutes(remaining);
+				if (single === null) {
+					expect(multiple).toEqual([]);
+				} else {
+					expect(formatCheckoutRoute(multiple[0])).toBe(formatCheckoutRoute(single));
 				}
 			}
 		});
