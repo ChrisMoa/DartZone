@@ -6,7 +6,7 @@ export interface AnimationEvent {
 	timestamp: number;
 }
 
-const SAFETY_TIMEOUT_MS = 10_000;
+const SAFETY_TIMEOUT_MS = 5_000;
 
 export function createAnimationStore() {
 	let currentEvent = $state<AnimationEvent | null>(null);

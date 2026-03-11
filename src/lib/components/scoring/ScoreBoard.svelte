@@ -89,13 +89,13 @@
 
 <div class="grid grid-cols-3 gap-2" data-testid="scoreboard">
 	<div
-		class="card p-4 text-center transition-all duration-300 {homeActive ? 'bg-gradient-to-br from-primary to-primary/80 text-primary-content ring-2 ring-primary shadow-lg shadow-primary/30' : 'bg-base-100'}"
+		class="card p-4 text-center transition-all duration-300 {homeActive ? 'bg-base-100 ring-2 ring-primary shadow-lg shadow-primary/30' : 'bg-base-100'}"
 		data-testid="scoreboard-home"
 	>
-		<div class="text-sm font-medium truncate" data-testid="scoreboard-home-name">
+		<div class="text-sm font-medium truncate {homeActive ? 'text-primary' : ''}" data-testid="scoreboard-home-name">
 			{game.home_player.first_name} {game.home_player.last_name}
 		</div>
-		<div class="text-4xl font-bold my-2 tabular-nums" data-testid="scoreboard-home-remaining">
+		<div class="text-4xl font-bold my-2 tabular-nums {homeActive ? 'text-primary' : ''}" data-testid="scoreboard-home-remaining">
 			{game.home_remaining}
 		</div>
 		<div class="text-xs opacity-70" data-testid="scoreboard-home-avg">
@@ -139,13 +139,13 @@
 	</div>
 
 	<div
-		class="card p-4 text-center transition-all duration-300 {awayActive ? 'bg-gradient-to-br from-secondary to-secondary/80 text-secondary-content ring-2 ring-secondary shadow-lg shadow-secondary/30' : 'bg-base-100'}"
+		class="card p-4 text-center transition-all duration-300 {awayActive ? 'bg-base-100 ring-2 ring-secondary shadow-lg shadow-secondary/30' : 'bg-base-100'}"
 		data-testid="scoreboard-away"
 	>
-		<div class="text-sm font-medium truncate" data-testid="scoreboard-away-name">
+		<div class="text-sm font-medium truncate {awayActive ? 'text-secondary' : ''}" data-testid="scoreboard-away-name">
 			{game.away_player.first_name} {game.away_player.last_name}
 		</div>
-		<div class="text-4xl font-bold my-2 tabular-nums" data-testid="scoreboard-away-remaining">
+		<div class="text-4xl font-bold my-2 tabular-nums {awayActive ? 'text-secondary' : ''}" data-testid="scoreboard-away-remaining">
 			{game.away_remaining}
 		</div>
 		<div class="text-xs opacity-70" data-testid="scoreboard-away-avg">

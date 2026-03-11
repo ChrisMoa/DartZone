@@ -35,21 +35,24 @@
 	const boardRadius = $derived(size / 2);
 
 	// Quadrant viewBox: show a quarter of the board with overlap so the bull is always visible
+	// LABEL_PAD accounts for number labels placed outside the board ring
 	const OVERLAP = 0.18;
+	const LABEL_PAD = 0.15;
 	const viewBox = $derived.by(() => {
 		const R = boardRadius;
 		const pad = R * OVERLAP;
+		const lp = R * LABEL_PAD;
 		switch (quadrant) {
 			case 'top-left':
-				return `${-R} ${-R} ${R + pad} ${R + pad}`;
+				return `${-R - lp} ${-R - lp} ${R + pad + lp} ${R + pad + lp}`;
 			case 'top-right':
-				return `${-pad} ${-R} ${R + pad} ${R + pad}`;
+				return `${-pad} ${-R - lp} ${R + pad + lp} ${R + pad + lp}`;
 			case 'bottom-left':
-				return `${-R} ${-pad} ${R + pad} ${R + pad}`;
+				return `${-R - lp} ${-pad} ${R + pad + lp} ${R + pad + lp}`;
 			case 'bottom-right':
-				return `${-pad} ${-pad} ${R + pad} ${R + pad}`;
+				return `${-pad} ${-pad} ${R + pad + lp} ${R + pad + lp}`;
 			default:
-				return `${-R} ${-R} ${size} ${size}`;
+				return `${-R - lp} ${-R - lp} ${size + lp * 2} ${size + lp * 2}`;
 		}
 	});
 
@@ -196,13 +199,30 @@
 	{#each SECTOR_ORDER as num, i}
 		{@const angle = ((i * 18 - 90) * Math.PI) / 180}
 		{@const labelRadius = boardRadius * 1.08}
+		{@const lx = labelRadius * Math.cos(angle)}
+		{@const ly = labelRadius * Math.sin(angle)}
+		<!-- Text outline for readability -->
 		<text
-			x={labelRadius * Math.cos(angle)}
-			y={labelRadius * Math.sin(angle)}
+			x={lx}
+			y={ly}
+			text-anchor="middle"
+			dominant-baseline="central"
+			fill="none"
+			stroke="#000"
+			stroke-width={boardRadius * 0.015}
+			font-size={boardRadius * 0.09}
+			font-weight="bold"
+			font-family="Arial, sans-serif"
+		>
+			{num}
+		</text>
+		<text
+			x={lx}
+			y={ly}
 			text-anchor="middle"
 			dominant-baseline="central"
 			fill="white"
-			font-size={boardRadius * 0.08}
+			font-size={boardRadius * 0.09}
 			font-weight="bold"
 			font-family="Arial, sans-serif"
 		>
