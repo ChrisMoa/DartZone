@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { gsap } from 'gsap';
 	import { createParticles, animateParticleBurst, cleanupParticles } from './animation.utils.js';
 
@@ -12,7 +13,7 @@
 	let backdrop: HTMLElement;
 	let textEl: HTMLElement;
 
-	function play() {
+	onMount(() => {
 		const particles = createParticles(container, 40, [
 			'#ffd700', '#ffaa00', '#ff8800', '#fff176', '#ffffff'
 		]);
@@ -46,10 +47,8 @@
 		// Fade out
 		tl.to(backdrop, { opacity: 0, duration: 0.5 }, '+=0.5');
 		tl.to(textEl, { scale: 1.5, opacity: 0, duration: 0.5 }, '<');
-	}
 
-	$effect(() => {
-		play();
+		return () => tl.kill();
 	});
 </script>
 
