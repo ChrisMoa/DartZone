@@ -32,8 +32,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-	class="fixed inset-0 z-50 flex justify-center {positionClass} bg-black/40 backdrop-blur-sm"
-	onclick={ondone}
+	class="fixed inset-0 z-50 flex justify-center {positionClass} bg-black/40 backdrop-blur-sm pointer-events-none"
 	data-testid="custom-animation-overlay"
 >
 	{#if isVideo}
