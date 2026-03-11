@@ -15,15 +15,18 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/20"
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 pointer-events-none"
 	data-testid="triple-twenty-effect"
-	onclick={() => ondone?.()}
 >
 	<div class="streak"></div>
 	<div class="t20-text">T20!</div>
 </div>
 
 <style>
+	.pointer-events-none {
+		pointer-events: none;
+	}
+
 	.streak {
 		position: absolute;
 		height: 4px;

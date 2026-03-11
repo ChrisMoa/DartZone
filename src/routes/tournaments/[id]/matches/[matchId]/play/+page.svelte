@@ -200,11 +200,19 @@
 
 	function handleHit(event: { sector: SectorValue; multiplier: Multiplier; score: number }) {
 		if (!game || game.status === 'completed') return;
-		game.registerThrow(event.sector, event.multiplier);
+		try {
+			game.registerThrow(event.sector, event.multiplier);
 
-		if (game.lastSpecialHit && settingsStore.isAnimationEnabled(game.lastSpecialHit)) {
-			animations.trigger(game.lastSpecialHit);
+			if (game.lastSpecialHit && settingsStore.isAnimationEnabled(game.lastSpecialHit)) {
+				animations.trigger(game.lastSpecialHit);
+			}
+		} catch (err) {
+			console.error('Error registering throw:', err);
 		}
+	}
+
+	function handleMiss() {
+		handleHit({ sector: 0 as SectorValue, multiplier: 0 as Multiplier, score: 0 });
 	}
 
 	function handleUndo() {
@@ -588,20 +596,28 @@
 						quadrant={activeQuadrant}
 						onhit={handleHit}
 					/>
-					<!-- Manual zoom toggle on non-mobile -->
-					{#if !isMobile}
+					<div class="flex items-center gap-2">
 						<button
-							class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
-							onclick={() => (activeQuadrant = activeQuadrant === 'full' ? 'top-right' : 'full')}
-							title="Zoom-Modus umschalten"
-							data-testid="zoom-toggle"
-						>
-							<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-								<circle cx="11" cy="11" r="8" /><path stroke-linecap="round" d="M21 21l-4.35-4.35M8 11h6M11 8v6" />
-							</svg>
-							<span class="text-xs">Zoom</span>
-						</button>
-					{/if}
+							class="btn btn-ghost btn-sm"
+							onclick={handleMiss}
+							disabled={game.status === 'completed'}
+							data-testid="dartboard-miss-btn"
+						>Miss (0)</button>
+						<!-- Manual zoom toggle on non-mobile -->
+						{#if !isMobile}
+							<button
+								class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+								onclick={() => (activeQuadrant = activeQuadrant === 'full' ? 'top-right' : 'full')}
+								title="Zoom-Modus umschalten"
+								data-testid="zoom-toggle"
+							>
+								<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+									<circle cx="11" cy="11" r="8" /><path stroke-linecap="round" d="M21 21l-4.35-4.35M8 11h6M11 8v6" />
+								</svg>
+								<span class="text-xs">Zoom</span>
+							</button>
+						{/if}
+					</div>
 				{/if}
 
 				<!-- Keypad (shown in keypad or both mode) -->
