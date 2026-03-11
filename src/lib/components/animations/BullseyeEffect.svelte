@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { gsap } from 'gsap';
 	import { createParticles, animateParticleBurst, cleanupParticles } from './animation.utils.js';
 
@@ -11,7 +12,7 @@
 	let container: HTMLElement;
 	let pulseRing: HTMLElement;
 
-	function play() {
+	onMount(() => {
 		const tl = gsap.timeline({
 			onComplete: () => {
 				cleanupParticles(particles);
@@ -30,10 +31,8 @@
 		const particles = createParticles(container, 20, ['#e74c3c', '#c0392b', '#ff6b6b', '#ffd700']);
 		const burstTl = animateParticleBurst(particles, 150);
 		tl.add(burstTl, 0.1);
-	}
 
-	$effect(() => {
-		play();
+		return () => tl.kill();
 	});
 </script>
 
