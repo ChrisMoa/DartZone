@@ -1,7 +1,7 @@
 import type { Player } from '$lib/types/club.js';
 import type { DartThrow, GameState, Multiplier, SectorValue, SpecialHit } from '$lib/types/game.js';
 import { calcScore, isBust, isCheckout } from '$lib/utils/scoring.js';
-import { getCheckoutRoute, type CheckoutRoute } from '$lib/utils/checkout.js';
+import { getCheckoutRoute, getCheckoutRoutes, type CheckoutRoute } from '$lib/utils/checkout.js';
 
 export function createGameState(config: {
 	match_id: string;
@@ -56,6 +56,11 @@ export function createGameState(config: {
 	const checkoutRoute = $derived.by((): CheckoutRoute | null => {
 		if (status === 'completed') return null;
 		return getCheckoutRoute(currentRemaining);
+	});
+
+	const checkoutRoutes = $derived.by((): CheckoutRoute[] => {
+		if (status === 'completed') return [];
+		return getCheckoutRoutes(currentRemaining);
 	});
 
 	function registerThrow(sector: SectorValue, multiplier: Multiplier): DartThrow {
@@ -222,6 +227,7 @@ export function createGameState(config: {
 		get homeAverage() { return homeAverage; },
 		get awayAverage() { return awayAverage; },
 		get checkoutRoute() { return checkoutRoute; },
+		get checkoutRoutes() { return checkoutRoutes; },
 		get softCheckout() { return softCheckout; },
 		setSoftCheckout(value: boolean) { softCheckout = value; },
 		registerThrow,
