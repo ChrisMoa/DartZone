@@ -655,8 +655,6 @@
 	<!-- Forfeit Dialog -->
 	{#if showForfeitDialog}
 		<div class="modal modal-open" data-testid="forfeit-dialog">
-			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-			<div class="modal-backdrop" onclick={closeForfeitDialog}></div>
 			<div class="modal-box">
 				{#if forfeitStep === 'choose'}
 					<h3 class="font-bold text-lg">Aufgeben</h3>
@@ -727,6 +725,8 @@
 					</div>
 				{/if}
 			</div>
+			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+			<div class="modal-backdrop" onclick={closeForfeitDialog}></div>
 		</div>
 	{/if}
 </div>
