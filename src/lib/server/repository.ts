@@ -27,12 +27,14 @@ export interface TournamentRepository {
 	getAll(): Promise<Tournament[]>;
 	getById(id: string): Promise<Tournament | null>;
 	getActive(): Promise<Tournament | null>;
-	create(tournament: Omit<Tournament, 'id'>): Promise<Tournament>;
-	update(id: string, tournament: Partial<Omit<Tournament, 'id'>>): Promise<Tournament | null>;
+	create(tournament: Omit<Tournament, 'id' | 'has_organizer_logo'>): Promise<Tournament>;
+	update(id: string, tournament: Partial<Omit<Tournament, 'id' | 'has_organizer_logo'>>): Promise<Tournament | null>;
 	delete(id: string): Promise<boolean>;
 	getClubIds(tournamentId: string): Promise<string[]>;
 	assignClub(tournamentId: string, clubId: string): Promise<void>;
 	removeClub(tournamentId: string, clubId: string): Promise<void>;
+	getLogoData(id: string): Promise<{ data: Buffer; mime: string } | null>;
+	setLogoData(id: string, data: Buffer, mime: string): Promise<boolean>;
 }
 
 export interface MatchRepository {

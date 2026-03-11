@@ -214,60 +214,109 @@ export class SqlitePlayerRepository implements PlayerRepository {
 
 // --- Tournament Repository ---
 
+const TOURNAMENT_COLUMNS = `id, name, game_mode, format, legs_per_set, sets_per_match,
+	start_date, end_date, is_active, organizer_name, organizer_contact, organizer_note,
+	(organizer_logo IS NOT NULL) as has_organizer_logo`;
+
+interface TournamentRow {
+	id: string;
+	name: string;
+	game_mode: string;
+	format: string;
+	legs_per_set: number;
+	sets_per_match: number;
+	start_date: string | null;
+	end_date: string | null;
+	is_active: number;
+	organizer_name: string | null;
+	organizer_contact: string | null;
+	organizer_note: string | null;
+	has_organizer_logo: number;
+}
+
 export class SqliteTournamentRepository implements TournamentRepository {
 	constructor(private db: Database.Database) {}
 
-	private rowToTournament(row: Omit<Tournament, 'is_active'> & { is_active: number }): Tournament {
-		return { ...row, is_active: row.is_active === 1 };
+	private rowToTournament(row: TournamentRow): Tournament {
+		return {
+			id: row.id,
+			name: row.name,
+			game_mode: row.game_mode as Tournament['game_mode'],
+			format: row.format as Tournament['format'],
+			legs_per_set: row.legs_per_set,
+			sets_per_match: row.sets_per_match,
+			start_date: row.start_date,
+			end_date: row.end_date,
+			is_active: row.is_active === 1,
+			organizer_name: row.organizer_name,
+			has_organizer_logo: row.has_organizer_logo === 1,
+			organizer_contact: row.organizer_contact,
+			organizer_note: row.organizer_note
+		};
 	}
 
 	async getAll(): Promise<Tournament[]> {
-		const rows = this.db.prepare('SELECT * FROM tournaments ORDER BY name').all() as Array<
-			Omit<Tournament, 'is_active'> & { is_active: number }
-		>;
+		const rows = this.db.prepare(`SELECT ${TOURNAMENT_COLUMNS} FROM tournaments ORDER BY name`).all() as TournamentRow[];
 		return rows.map((r) => this.rowToTournament(r));
 	}
 
 	async getById(id: string): Promise<Tournament | null> {
-		const row = this.db.prepare('SELECT * FROM tournaments WHERE id = ?').get(id) as
-			| (Omit<Tournament, 'is_active'> & { is_active: number })
-			| undefined;
+		const row = this.db.prepare(`SELECT ${TOURNAMENT_COLUMNS} FROM tournaments WHERE id = ?`).get(id) as TournamentRow | undefined;
 		if (!row) return null;
 		return this.rowToTournament(row);
 	}
 
 	async getActive(): Promise<Tournament | null> {
-		const row = this.db.prepare('SELECT * FROM tournaments WHERE is_active = 1').get() as
-			| (Omit<Tournament, 'is_active'> & { is_active: number })
-			| undefined;
+		const row = this.db.prepare(`SELECT ${TOURNAMENT_COLUMNS} FROM tournaments WHERE is_active = 1`).get() as TournamentRow | undefined;
 		if (!row) return null;
-		return { ...row, is_active: true };
+		return this.rowToTournament(row);
 	}
 
-	async create(data: Omit<Tournament, 'id'>): Promise<Tournament> {
-		const tournament: Tournament = { ...data, id: generateId() };
+	async create(data: Omit<Tournament, 'id' | 'has_organizer_logo'>): Promise<Tournament> {
+		const id = generateId();
 		this.db
 			.prepare(
-				`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, is_active)
-				 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @is_active)`
+				`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, is_active, organizer_name, organizer_contact, organizer_note)
+				 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @is_active, @organizer_name, @organizer_contact, @organizer_note)`
 			)
-			.run({ ...tournament, is_active: tournament.is_active ? 1 : 0 });
-		return tournament;
+			.run({
+				id,
+				name: data.name,
+				game_mode: data.game_mode,
+				format: data.format,
+				legs_per_set: data.legs_per_set,
+				sets_per_match: data.sets_per_match,
+				start_date: data.start_date,
+				end_date: data.end_date,
+				is_active: data.is_active ? 1 : 0,
+				organizer_name: data.organizer_name ?? null,
+				organizer_contact: data.organizer_contact ?? null,
+				organizer_note: data.organizer_note ?? null
+			});
+		return (await this.getById(id))!;
 	}
 
-	async update(id: string, data: Partial<Omit<Tournament, 'id'>>): Promise<Tournament | null> {
+	async update(id: string, data: Partial<Omit<Tournament, 'id' | 'has_organizer_logo'>>): Promise<Tournament | null> {
 		const existing = await this.getById(id);
 		if (!existing) return null;
-		const updated: Tournament = { ...existing, ...data };
+		const updated = { ...existing, ...data };
 		this.db
 			.prepare(
 				`UPDATE tournaments SET name = @name, game_mode = @game_mode, format = @format,
 				 legs_per_set = @legs_per_set, sets_per_match = @sets_per_match,
 				 start_date = @start_date, end_date = @end_date,
-				 is_active = @is_active WHERE id = @id`
+				 is_active = @is_active, organizer_name = @organizer_name,
+				 organizer_contact = @organizer_contact, organizer_note = @organizer_note
+				 WHERE id = @id`
 			)
-			.run({ ...updated, is_active: updated.is_active ? 1 : 0 });
-		return updated;
+			.run({
+				...updated,
+				is_active: updated.is_active ? 1 : 0,
+				organizer_name: updated.organizer_name ?? null,
+				organizer_contact: updated.organizer_contact ?? null,
+				organizer_note: updated.organizer_note ?? null
+			});
+		return this.getById(id);
 	}
 
 	async delete(id: string): Promise<boolean> {
@@ -292,6 +341,21 @@ export class SqliteTournamentRepository implements TournamentRepository {
 		this.db
 			.prepare('DELETE FROM tournament_clubs WHERE tournament_id = ? AND club_id = ?')
 			.run(tournamentId, clubId);
+	}
+
+	async getLogoData(id: string): Promise<{ data: Buffer; mime: string } | null> {
+		const row = this.db
+			.prepare('SELECT organizer_logo, organizer_logo_mime FROM tournaments WHERE id = ?')
+			.get(id) as { organizer_logo: Buffer | null; organizer_logo_mime: string | null } | undefined;
+		if (!row?.organizer_logo || !row?.organizer_logo_mime) return null;
+		return { data: row.organizer_logo, mime: row.organizer_logo_mime };
+	}
+
+	async setLogoData(id: string, data: Buffer, mime: string): Promise<boolean> {
+		const result = this.db
+			.prepare('UPDATE tournaments SET organizer_logo = ?, organizer_logo_mime = ? WHERE id = ?')
+			.run(data, mime, id);
+		return result.changes > 0;
 	}
 }
 
