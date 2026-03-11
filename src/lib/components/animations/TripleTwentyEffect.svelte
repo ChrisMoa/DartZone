@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { gsap } from 'gsap';
 
 	interface Props {
@@ -11,7 +12,7 @@
 	let textEl: HTMLElement;
 	let streakEl: HTMLElement;
 
-	function play() {
+	onMount(() => {
 		const tl = gsap.timeline({
 			onComplete: () => ondone?.()
 		});
@@ -36,10 +37,8 @@
 			delay: 0.3,
 			ease: 'power1.in'
 		});
-	}
 
-	$effect(() => {
-		play();
+		return () => tl.kill();
 	});
 </script>
 

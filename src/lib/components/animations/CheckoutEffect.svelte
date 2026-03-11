@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { gsap } from 'gsap';
 	import { createParticles, cleanupParticles } from './animation.utils.js';
 
@@ -12,7 +13,7 @@
 	let container: HTMLElement;
 	let banner: HTMLElement;
 
-	function play() {
+	onMount(() => {
 		// Confetti particles
 		const confettiColors = [
 			'#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#ffd700'
@@ -68,10 +69,8 @@
 
 		// Banner fade out
 		tl.to(banner, { y: -50, opacity: 0, duration: 0.5, ease: 'power2.in' }, '+=1');
-	}
 
-	$effect(() => {
-		play();
+		return () => tl.kill();
 	});
 </script>
 
