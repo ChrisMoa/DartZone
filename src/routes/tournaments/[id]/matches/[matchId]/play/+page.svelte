@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import Dartboard from '$lib/components/dartboard/Dartboard.svelte';
 	import ScoreBoard from '$lib/components/scoring/ScoreBoard.svelte';
+	import ScoreKeypad from '$lib/components/scoring/ScoreKeypad.svelte';
 	import ThrowHistory from '$lib/components/scoring/ThrowHistory.svelte';
 	import TurnIndicator from '$lib/components/scoring/TurnIndicator.svelte';
 	import CheckoutHelper from '$lib/components/scoring/CheckoutHelper.svelte';
@@ -28,6 +30,20 @@
 
 	let game = $state<GameStore | null>(null);
 	const animations = createAnimationStore();
+
+	// Input mode: 'dartboard' | 'keypad' | 'both'
+	const INPUT_MODE_KEY = 'dartzone_input_mode';
+	type InputMode = 'dartboard' | 'keypad' | 'both';
+	let inputMode = $state<InputMode>(
+		(browser ? localStorage.getItem(INPUT_MODE_KEY) as InputMode : null) ?? 'dartboard'
+	);
+
+	function cycleInputMode() {
+		const modes: InputMode[] = ['dartboard', 'keypad', 'both'];
+		const idx = modes.indexOf(inputMode);
+		inputMode = modes[(idx + 1) % modes.length];
+		if (browser) localStorage.setItem(INPUT_MODE_KEY, inputMode);
+	}
 
 	// Leg history tracking
 	let completedLegs = $state<LegRecord[]>([]);
@@ -372,11 +388,55 @@
 
 		<div class="grid gap-4 lg:grid-cols-2">
 			<div class="flex flex-col items-center gap-4">
-				<Dartboard
-					size={350}
-					disabled={game.status === 'completed'}
-					onhit={handleHit}
-				/>
+				<!-- Input mode toggle -->
+				<div class="flex items-center gap-2">
+					<button
+						class="btn btn-ghost btn-xs"
+						onclick={cycleInputMode}
+						title="Eingabemodus wechseln"
+						data-testid="input-mode-toggle"
+					>
+						{#if inputMode === 'dartboard'}
+							<!-- Dartboard icon -->
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
+							</svg>
+							<span class="text-xs">Dartboard</span>
+						{:else if inputMode === 'keypad'}
+							<!-- Keypad icon -->
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<rect x="4" y="4" width="16" height="16" rx="2" /><path d="M8 8h.01M12 8h.01M16 8h.01M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" stroke-linecap="round" />
+							</svg>
+							<span class="text-xs">Tastatur</span>
+						{:else}
+							<!-- Both icon -->
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<circle cx="8" cy="12" r="5" /><rect x="14" y="8" width="8" height="8" rx="1" />
+							</svg>
+							<span class="text-xs">Beides</span>
+						{/if}
+					</button>
+				</div>
+
+				<!-- Dartboard (shown in dartboard or both mode) -->
+				{#if inputMode === 'dartboard' || inputMode === 'both'}
+					<Dartboard
+						size={inputMode === 'both' ? 280 : 350}
+						disabled={game.status === 'completed'}
+						onhit={handleHit}
+					/>
+				{/if}
+
+				<!-- Keypad (shown in keypad or both mode) -->
+				{#if inputMode === 'keypad' || inputMode === 'both'}
+					<div class="w-full max-w-xs">
+						<ScoreKeypad
+							disabled={game.status === 'completed'}
+							onhit={handleHit}
+						/>
+					</div>
+				{/if}
+
 				<div class="flex flex-wrap items-center gap-2">
 					<button
 						class="btn btn-outline btn-sm"
