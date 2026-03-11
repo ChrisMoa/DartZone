@@ -13,10 +13,14 @@
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
 	import PlayerStatsCard from '$lib/components/scoring/PlayerStatsCard.svelte';
 	import type { PlayerStats } from '$lib/components/scoring/PlayerStatsCard.svelte';
+	import { getContext } from 'svelte';
 	import { createGameState, type GameStore } from '$lib/stores/game.svelte.js';
 	import { createAnimationStore } from '$lib/stores/animation.svelte.js';
+	import type { SettingsStore } from '$lib/stores/settings.svelte.js';
 	import type { DartThrow, Multiplier, SectorValue } from '$lib/types/game.js';
 	import type { Player } from '$lib/types/club.js';
+
+	const settingsStore = getContext<SettingsStore>('settings');
 
 	let { data } = $props();
 
@@ -27,23 +31,20 @@
 	let matchCompleted = $state(data.match.status === 'completed');
 	let homeLegsWon = $state(data.match.home_legs_won);
 	let awayLegsWon = $state(data.match.away_legs_won);
-	let softCheckout = $state(false);
+	let softCheckout = $state(settingsStore.settings.defaultSoftCheckout);
 
 	let game = $state<GameStore | null>(null);
 	const animations = createAnimationStore();
 
-	// Input mode: 'dartboard' | 'keypad' | 'both'
-	const INPUT_MODE_KEY = 'dartzone_input_mode';
+	// Input mode from settings
 	type InputMode = 'dartboard' | 'keypad' | 'both';
-	let inputMode = $state<InputMode>(
-		(browser ? localStorage.getItem(INPUT_MODE_KEY) as InputMode : null) ?? 'dartboard'
-	);
+	let inputMode = $state<InputMode>(settingsStore.settings.inputMode);
 
 	function cycleInputMode() {
 		const modes: InputMode[] = ['dartboard', 'keypad', 'both'];
 		const idx = modes.indexOf(inputMode);
 		inputMode = modes[(idx + 1) % modes.length];
-		if (browser) localStorage.setItem(INPUT_MODE_KEY, inputMode);
+		settingsStore.update('inputMode', inputMode);
 	}
 
 	// Quadrant zoom for mobile
@@ -201,7 +202,7 @@
 		if (!game || game.status === 'completed') return;
 		game.registerThrow(event.sector, event.multiplier);
 
-		if (game.lastSpecialHit) {
+		if (game.lastSpecialHit && settingsStore.isAnimationEnabled(game.lastSpecialHit)) {
 			animations.trigger(game.lastSpecialHit);
 		}
 	}
@@ -643,7 +644,9 @@
 			</div>
 
 			<div class="flex flex-col gap-4">
-				<CheckoutHelper remaining={game.currentRemaining} checkoutRoutes={game.checkoutRoutes} />
+				{#if settingsStore.settings.showCheckoutHelper}
+					<CheckoutHelper remaining={game.currentRemaining} checkoutRoutes={game.checkoutRoutes} />
+				{/if}
 				<ThrowHistory throws={game.throws} currentTurnThrows={game.currentTurnThrows} />
 			</div>
 		</div>
