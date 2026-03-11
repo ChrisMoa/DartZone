@@ -7,7 +7,9 @@ import type {
 	PlayerRepository,
 	TournamentRepository,
 	MatchRepository,
-	StandingsService
+	StandingsService,
+	AnimationAsset,
+	AnimationAssetRepository
 } from './repository.js';
 
 function generateId(): string {
@@ -548,5 +550,71 @@ export class SqliteStandingsService implements StandingsService {
 			if (bDiff !== aDiff) return bDiff - aDiff;
 			return b.legs_for - a.legs_for;
 		});
+	}
+}
+
+// --- Animation Asset Repository ---
+
+interface AnimationAssetRow {
+	event: string;
+	data: Buffer;
+	mime: string;
+	duration_ms: number;
+	position: string;
+	created_at: string;
+}
+
+export class SqliteAnimationAssetRepository implements AnimationAssetRepository {
+	constructor(private db: Database.Database) {}
+
+	private rowToAsset(row: AnimationAssetRow): AnimationAsset {
+		return {
+			event: row.event,
+			mime: row.mime,
+			duration_ms: row.duration_ms,
+			position: row.position as AnimationAsset['position'],
+			created_at: row.created_at
+		};
+	}
+
+	async getAll(): Promise<AnimationAsset[]> {
+		const rows = this.db
+			.prepare('SELECT event, mime, duration_ms, position, created_at FROM animation_assets ORDER BY event')
+			.all() as AnimationAssetRow[];
+		return rows.map((r) => this.rowToAsset(r));
+	}
+
+	async getByEvent(event: string): Promise<AnimationAsset | null> {
+		const row = this.db
+			.prepare('SELECT event, mime, duration_ms, position, created_at FROM animation_assets WHERE event = ?')
+			.get(event) as AnimationAssetRow | undefined;
+		if (!row) return null;
+		return this.rowToAsset(row);
+	}
+
+	async getData(event: string): Promise<{ data: Buffer; mime: string } | null> {
+		const row = this.db
+			.prepare('SELECT data, mime FROM animation_assets WHERE event = ?')
+			.get(event) as { data: Buffer; mime: string } | undefined;
+		if (!row) return null;
+		return { data: row.data, mime: row.mime };
+	}
+
+	async upsert(event: string, data: Buffer, mime: string, duration_ms: number, position: string): Promise<AnimationAsset> {
+		const ts = now();
+		this.db
+			.prepare(
+				`INSERT INTO animation_assets (event, data, mime, duration_ms, position, created_at)
+				 VALUES (?, ?, ?, ?, ?, ?)
+				 ON CONFLICT(event) DO UPDATE SET data = excluded.data, mime = excluded.mime,
+				 duration_ms = excluded.duration_ms, position = excluded.position, created_at = excluded.created_at`
+			)
+			.run(event, data, mime, duration_ms, position, ts);
+		return { event, mime, duration_ms, position: position as AnimationAsset['position'], created_at: ts };
+	}
+
+	async delete(event: string): Promise<boolean> {
+		const result = this.db.prepare('DELETE FROM animation_assets WHERE event = ?').run(event);
+		return result.changes > 0;
 	}
 }
