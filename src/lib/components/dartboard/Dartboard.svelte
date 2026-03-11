@@ -20,16 +20,38 @@
 		id: string;
 	}
 
+	export type Quadrant = 'full' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+
 	interface Props {
 		size?: number;
 		disabled?: boolean;
 		markers?: HitMarker[];
+		quadrant?: Quadrant;
 		onhit?: (event: HitEvent) => void;
 	}
 
-	let { size = 400, disabled = false, markers = [], onhit }: Props = $props();
+	let { size = 400, disabled = false, markers = [], quadrant = 'full', onhit }: Props = $props();
 
 	const boardRadius = $derived(size / 2);
+
+	// Quadrant viewBox: show a quarter of the board with overlap so the bull is always visible
+	const OVERLAP = 0.18;
+	const viewBox = $derived.by(() => {
+		const R = boardRadius;
+		const pad = R * OVERLAP;
+		switch (quadrant) {
+			case 'top-left':
+				return `${-R} ${-R} ${R + pad} ${R + pad}`;
+			case 'top-right':
+				return `${-pad} ${-R} ${R + pad} ${R + pad}`;
+			case 'bottom-left':
+				return `${-R} ${-pad} ${R + pad} ${R + pad}`;
+			case 'bottom-right':
+				return `${-pad} ${-pad} ${R + pad} ${R + pad}`;
+			default:
+				return `${-R} ${-R} ${size} ${size}`;
+		}
+	});
 
 	// Color scheme for the dartboard
 	const COLORS = {
@@ -115,7 +137,7 @@
 <svg
 	width={size}
 	height={size}
-	viewBox={`${-boardRadius} ${-boardRadius} ${size} ${size}`}
+	viewBox={viewBox}
 	class="dartboard"
 	data-testid="dartboard"
 >
@@ -196,6 +218,7 @@
 	.dartboard {
 		user-select: none;
 		-webkit-user-select: none;
+		transition: all 0.3s ease;
 	}
 	.dartboard-sector {
 		cursor: pointer;
