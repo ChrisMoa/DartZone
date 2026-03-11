@@ -22,7 +22,7 @@
 <div class="min-h-screen bg-base-200">
 	<nav class="navbar bg-gradient-to-r from-base-100 to-base-200 shadow-sm sticky top-0 z-40 border-b border-base-300/50">
 		<div class="flex-1">
-			<a href="/" class="btn btn-ghost text-xl font-bold text-primary">DartZone</a>
+			<a href="/" class="btn btn-ghost text-xl font-bold text-primary" title="DartZone v{__APP_VERSION__}">DartZone</a>
 		</div>
 		<div class="flex-none flex items-center gap-1">
 			<ul class="menu menu-horizontal gap-1">
