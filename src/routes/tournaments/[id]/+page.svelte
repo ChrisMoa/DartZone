@@ -1,6 +1,7 @@
 <script lang="ts">
 	import LeagueTable from '$lib/components/league/LeagueTable.svelte';
 	import MatchCard from '$lib/components/league/MatchCard.svelte';
+	import KnockoutBracket from '$lib/components/league/KnockoutBracket.svelte';
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
 
 	let { data } = $props();
@@ -43,23 +44,7 @@
 				{#if data.matches.length === 0}
 					<p class="text-base-content/60">Noch keine Spiele generiert.</p>
 				{:else}
-					{@const rounds = [...new Set(data.matches.map((m) => m.round).filter(Boolean))]}
-					{#each rounds as round}
-						<h3 class="font-semibold mt-4 mb-2">{round}</h3>
-						<div class="grid gap-3">
-							{#each data.matches.filter((m) => m.round === round) as match (match.id)}
-								<MatchCard {match} showPlayLink={true} tournamentId={data.tournament.id} />
-							{/each}
-						</div>
-					{/each}
-					{@const noRound = data.matches.filter((m) => !m.round)}
-					{#if noRound.length > 0}
-						<div class="grid gap-3 mt-4">
-							{#each noRound as match (match.id)}
-								<MatchCard {match} showPlayLink={true} tournamentId={data.tournament.id} />
-							{/each}
-						</div>
-					{/if}
+					<KnockoutBracket matches={data.matches} tournamentId={data.tournament.id} />
 				{/if}
 			</div>
 		</div>
