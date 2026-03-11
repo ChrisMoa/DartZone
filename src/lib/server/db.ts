@@ -4,7 +4,8 @@ import {
 	SqlitePlayerRepository,
 	SqliteTournamentRepository,
 	SqliteMatchRepository,
-	SqliteStandingsService
+	SqliteStandingsService,
+	SqliteAnimationAssetRepository
 } from './sqlite-repository.js';
 import { seedClubs, seedPlayers, seedTournaments, seedTournamentClubs, seedMatches } from './seed.js';
 
@@ -15,6 +16,7 @@ export const playerRepo = new SqlitePlayerRepository(db);
 export const tournamentRepo = new SqliteTournamentRepository(db);
 export const matchRepo = new SqliteMatchRepository(db, clubRepo);
 export const standingsService = new SqliteStandingsService(matchRepo, tournamentRepo, clubRepo);
+export const animationAssetRepo = new SqliteAnimationAssetRepository(db);
 
 // Auto-seed on first run (empty database)
 const clubCount = db.prepare('SELECT COUNT(*) as count FROM clubs').get() as { count: number };
