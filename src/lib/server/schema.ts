@@ -32,7 +32,12 @@ CREATE TABLE IF NOT EXISTS tournaments (
 	sets_per_match INTEGER NOT NULL DEFAULT 5,
 	start_date TEXT,
 	end_date TEXT,
-	is_active INTEGER NOT NULL DEFAULT 0
+	is_active INTEGER NOT NULL DEFAULT 0,
+	organizer_name TEXT,
+	organizer_logo BLOB,
+	organizer_logo_mime TEXT,
+	organizer_contact TEXT,
+	organizer_note TEXT
 );
 
 CREATE TABLE IF NOT EXISTS tournament_clubs (

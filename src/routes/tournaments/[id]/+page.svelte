@@ -25,6 +25,34 @@
 		{data.tournament.legs_per_set} Legs/Set &middot; {data.tournament.sets_per_match} Sets/Match
 	</div>
 
+	<!-- Organizer card -->
+	{#if data.tournament.organizer_name}
+		<div class="card card-border bg-base-100 shadow-sm" data-testid="organizer-card">
+			<div class="card-body p-4 flex-row items-center gap-4">
+				{#if data.tournament.has_organizer_logo}
+					<img
+						src="/api/tournaments/{data.tournament.id}/logo"
+						alt="Logo {data.tournament.organizer_name}"
+						class="w-14 h-14 rounded-lg object-contain"
+					/>
+				{:else}
+					<div class="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+						{data.tournament.organizer_name.slice(0, 2).toUpperCase()}
+					</div>
+				{/if}
+				<div class="flex flex-col gap-0.5">
+					<span class="font-semibold">{data.tournament.organizer_name}</span>
+					{#if data.tournament.organizer_contact}
+						<span class="text-sm text-base-content/60">{data.tournament.organizer_contact}</span>
+					{/if}
+					{#if data.tournament.organizer_note}
+						<span class="text-sm italic text-base-content/50">'{data.tournament.organizer_note}'</span>
+					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Standings (round-robin) or Bracket (knockout) -->
 	{#if data.tournament.format === 'round_robin'}
 		<div class="card bg-base-100 shadow-sm">

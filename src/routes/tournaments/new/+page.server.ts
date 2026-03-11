@@ -14,7 +14,10 @@ export const actions: Actions = {
 			sets_per_match: Number(formData.get('sets_per_match')),
 			start_date: (formData.get('start_date') as string) || null,
 			end_date: (formData.get('end_date') as string) || null,
-			is_active: formData.get('is_active') === 'on'
+			is_active: formData.get('is_active') === 'on',
+			organizer_name: (formData.get('organizer_name') as string) || null,
+			organizer_contact: (formData.get('organizer_contact') as string) || null,
+			organizer_note: (formData.get('organizer_note') as string) || null
 		};
 
 		const result = tournamentSchema.safeParse(raw);
@@ -27,7 +30,20 @@ export const actions: Actions = {
 			return fail(400, { errors, values: raw });
 		}
 
-		const tournament = await tournamentRepo.create(result.data);
+		const tournament = await tournamentRepo.create({
+			...result.data,
+			organizer_name: raw.organizer_name,
+			organizer_contact: raw.organizer_contact,
+			organizer_note: raw.organizer_note
+		});
+
+		// Handle logo upload
+		const logoFile = formData.get('organizer_logo') as File | null;
+		if (logoFile && logoFile.size > 0) {
+			const buffer = Buffer.from(await logoFile.arrayBuffer());
+			await tournamentRepo.setLogoData(tournament.id, buffer, logoFile.type);
+		}
+
 		throw redirect(303, `/tournaments/${tournament.id}`);
 	}
 };
