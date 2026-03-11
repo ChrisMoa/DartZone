@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import Dartboard from '$lib/components/dartboard/Dartboard.svelte';
+	import type { Quadrant } from '$lib/components/dartboard/Dartboard.svelte';
 	import ScoreBoard from '$lib/components/scoring/ScoreBoard.svelte';
 	import ScoreKeypad from '$lib/components/scoring/ScoreKeypad.svelte';
 	import ThrowHistory from '$lib/components/scoring/ThrowHistory.svelte';
@@ -44,6 +45,29 @@
 		inputMode = modes[(idx + 1) % modes.length];
 		if (browser) localStorage.setItem(INPUT_MODE_KEY, inputMode);
 	}
+
+	// Quadrant zoom for mobile
+	let activeQuadrant = $state<Quadrant>('full');
+	let isMobile = $state(false);
+
+	$effect(() => {
+		if (!browser) return;
+		const mq = window.matchMedia('(max-width: 499px)');
+		isMobile = mq.matches;
+		function onChange(e: MediaQueryListEvent) {
+			isMobile = e.matches;
+			if (!e.matches) activeQuadrant = 'full';
+		}
+		mq.addEventListener('change', onChange);
+		return () => mq.removeEventListener('change', onChange);
+	});
+
+	const QUADRANTS: { id: Quadrant; label: string; sectors: string }[] = [
+		{ id: 'top-left', label: '↖', sectors: '11/14/9/12/5' },
+		{ id: 'top-right', label: '↗', sectors: '20/1/18/4/13' },
+		{ id: 'bottom-left', label: '↙', sectors: '8/16/7/19/3' },
+		{ id: 'bottom-right', label: '↘', sectors: '6/10/15/2/17' },
+	];
 
 	// Leg history tracking
 	let completedLegs = $state<LegRecord[]>([]);
@@ -418,13 +442,45 @@
 					</button>
 				</div>
 
+				<!-- Quadrant zoom selector (mobile or manual toggle) -->
+				{#if (inputMode === 'dartboard' || inputMode === 'both') && (isMobile || activeQuadrant !== 'full')}
+					<div class="flex items-center gap-1" data-testid="quadrant-selector">
+						<button
+							class="btn btn-xs {activeQuadrant === 'full' ? 'btn-primary' : 'btn-ghost'}"
+							onclick={() => (activeQuadrant = 'full')}
+						>Voll</button>
+						{#each QUADRANTS as q (q.id)}
+							<button
+								class="btn btn-xs {activeQuadrant === q.id ? 'btn-primary' : 'btn-outline'}"
+								onclick={() => (activeQuadrant = q.id)}
+								title={q.sectors}
+							>{q.label}</button>
+						{/each}
+					</div>
+				{/if}
+
 				<!-- Dartboard (shown in dartboard or both mode) -->
 				{#if inputMode === 'dartboard' || inputMode === 'both'}
 					<Dartboard
-						size={inputMode === 'both' ? 280 : 350}
+						size={inputMode === 'both' ? 280 : isMobile ? Math.min(350, 300) : 350}
 						disabled={game.status === 'completed'}
+						quadrant={activeQuadrant}
 						onhit={handleHit}
 					/>
+					<!-- Manual zoom toggle on non-mobile -->
+					{#if !isMobile}
+						<button
+							class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
+							onclick={() => (activeQuadrant = activeQuadrant === 'full' ? 'top-right' : 'full')}
+							title="Zoom-Modus umschalten"
+							data-testid="zoom-toggle"
+						>
+							<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<circle cx="11" cy="11" r="8" /><path stroke-linecap="round" d="M21 21l-4.35-4.35M8 11h6M11 8v6" />
+							</svg>
+							<span class="text-xs">Zoom</span>
+						</button>
+					{/if}
 				{/if}
 
 				<!-- Keypad (shown in keypad or both mode) -->
