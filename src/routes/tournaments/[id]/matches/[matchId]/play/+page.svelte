@@ -211,6 +211,117 @@
 		game.undoLastThrow();
 	}
 
+	// Forfeit state
+	let showForfeitDialog = $state(false);
+	let forfeitStep = $state<'choose' | 'confirm-leg' | 'confirm-match'>('choose');
+	let forfeitSaving = $state(false);
+
+	function openForfeitDialog() {
+		forfeitStep = 'choose';
+		showForfeitDialog = true;
+	}
+
+	function closeForfeitDialog() {
+		showForfeitDialog = false;
+		forfeitStep = 'choose';
+	}
+
+	// The side that forfeits is the current player's side
+	const forfeitSide = $derived(
+		game && game.current_player_id === game.home_player.id ? 'home' : 'away'
+	);
+	const opponentClubName = $derived(
+		forfeitSide === 'home' ? data.match.away_club.name : data.match.home_club.name
+	);
+
+	async function handleForfeitLeg() {
+		if (!game || forfeitSaving) return;
+		forfeitSaving = true;
+
+		try {
+			const formData = new FormData();
+			formData.set('forfeit_side', forfeitSide!);
+
+			const response = await fetch('?/forfeitLeg', {
+				method: 'POST',
+				body: formData,
+				headers: { 'x-sveltekit-action': 'true' }
+			});
+
+			if (!response.ok) {
+				console.error('Failed to forfeit leg:', response.status);
+				return;
+			}
+
+			const result = await response.json();
+
+			// Award leg to opponent
+			if (forfeitSide === 'home') {
+				awayLegsWon++;
+			} else {
+				homeLegsWon++;
+			}
+
+			closeForfeitDialog();
+
+			// Check match completion
+			if (result.data?.matchCompleted || homeLegsWon >= legsToWin || awayLegsWon >= legsToWin) {
+				matchCompleted = true;
+				return;
+			}
+
+			// Start next leg
+			legNumber++;
+			game = createGameState({
+				match_id: data.match.id,
+				leg_number: legNumber,
+				home_player: data.homePlayers[homePlayerIndex],
+				away_player: data.awayPlayers[awayPlayerIndex],
+				starting_score: startingScore,
+				softCheckout
+			});
+		} catch (err) {
+			console.error('Error forfeiting leg:', err);
+		} finally {
+			forfeitSaving = false;
+		}
+	}
+
+	async function handleConcedeMatch() {
+		if (!game || forfeitSaving) return;
+		forfeitSaving = true;
+
+		try {
+			const formData = new FormData();
+			formData.set('forfeit_side', forfeitSide!);
+
+			const response = await fetch('?/concedeMatch', {
+				method: 'POST',
+				body: formData,
+				headers: { 'x-sveltekit-action': 'true' }
+			});
+
+			if (!response.ok) {
+				console.error('Failed to concede match:', response.status);
+				return;
+			}
+
+			// Set final score
+			if (forfeitSide === 'home') {
+				awayLegsWon = legsToWin;
+			} else {
+				homeLegsWon = legsToWin;
+			}
+
+			closeForfeitDialog();
+			matchCompleted = true;
+		} catch (err) {
+			console.error('Error conceding match:', err);
+		} finally {
+			forfeitSaving = false;
+		}
+	}
+
 	let legSaving = $state(false);
 
 	async function handleLegComplete() {
@@ -273,9 +384,18 @@
 <div class="flex flex-col gap-4" data-testid="game-page">
 	<div class="flex items-center gap-4">
 		<a href="/tournaments/{data.tournament.id}" class="btn btn-ghost btn-sm">Zurueck</a>
-		<h1 class="text-xl font-bold">
+		<h1 class="text-xl font-bold flex-1">
 			{data.match.home_club.short_name} vs {data.match.away_club.short_name}
 		</h1>
+		{#if matchStarted && !matchCompleted}
+			<button
+				class="btn btn-outline btn-error btn-sm"
+				onclick={openForfeitDialog}
+				data-testid="forfeit-btn"
+			>
+				Aufgeben
+			</button>
+		{/if}
 	</div>
 
 	<!-- Match Score Header -->
@@ -525,6 +645,84 @@
 			<div class="flex flex-col gap-4">
 				<CheckoutHelper remaining={game.currentRemaining} checkoutRoutes={game.checkoutRoutes} />
 				<ThrowHistory throws={game.throws} currentTurnThrows={game.currentTurnThrows} />
+			</div>
+		</div>
+	{/if}
+
+	<!-- Forfeit Dialog -->
+	{#if showForfeitDialog}
+		<div class="modal modal-open" data-testid="forfeit-dialog">
+			<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+			<div class="modal-backdrop" onclick={closeForfeitDialog}></div>
+			<div class="modal-box">
+				{#if forfeitStep === 'choose'}
+					<h3 class="font-bold text-lg">Aufgeben</h3>
+					<p class="py-4 text-base-content/70">Was moechtest du aufgeben?</p>
+					<div class="flex flex-col gap-3">
+						<button
+							class="btn btn-outline btn-warning"
+							onclick={() => (forfeitStep = 'confirm-leg')}
+							data-testid="forfeit-leg-option"
+						>
+							Leg aufgeben
+						</button>
+						<button
+							class="btn btn-outline btn-error"
+							onclick={() => (forfeitStep = 'confirm-match')}
+							data-testid="forfeit-match-option"
+						>
+							Match aufgeben
+						</button>
+					</div>
+					<div class="modal-action">
+						<button class="btn btn-ghost" onclick={closeForfeitDialog}>Abbrechen</button>
+					</div>
+
+				{:else if forfeitStep === 'confirm-leg'}
+					<h3 class="font-bold text-lg text-warning">Leg aufgeben?</h3>
+					<p class="py-4">
+						Leg {legNumber} wird <strong>{opponentClubName}</strong> zugesprochen.
+						Das Spiel geht weiter.
+					</p>
+					<div class="modal-action">
+						<button class="btn btn-ghost" onclick={() => (forfeitStep = 'choose')}>Zurueck</button>
+						<button
+							class="btn btn-warning"
+							onclick={handleForfeitLeg}
+							disabled={forfeitSaving}
+							data-testid="forfeit-leg-confirm"
+						>
+							{#if forfeitSaving}
+								<span class="loading loading-spinner loading-xs"></span>
+							{/if}
+							Leg aufgeben
+						</button>
+					</div>
+
+				{:else if forfeitStep === 'confirm-match'}
+					<h3 class="font-bold text-lg text-error">Match aufgeben?</h3>
+					<div class="py-4 flex flex-col gap-2">
+						<p>
+							Das gesamte Match wird <strong>{opponentClubName}</strong> zugesprochen.
+						</p>
+						<p>Alle verbleibenden Legs werden gewertet.</p>
+						<p class="text-error text-sm font-medium">Diese Aktion kann nicht rueckgaengig gemacht werden.</p>
+					</div>
+					<div class="modal-action">
+						<button class="btn btn-ghost" onclick={() => (forfeitStep = 'choose')}>Zurueck</button>
+						<button
+							class="btn btn-error"
+							onclick={handleConcedeMatch}
+							disabled={forfeitSaving}
+							data-testid="forfeit-match-confirm"
+						>
+							{#if forfeitSaving}
+								<span class="loading loading-spinner loading-xs"></span>
+							{/if}
+							Match aufgeben
+						</button>
+					</div>
+				{/if}
 			</div>
 		</div>
 	{/if}
