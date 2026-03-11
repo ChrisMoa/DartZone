@@ -15,9 +15,8 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div
-	class="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+	class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 pointer-events-none"
 	data-testid="bullseye-effect"
-	onclick={() => ondone?.()}
 >
 	<div class="bullseye-container">
 		<div class="pulse-ring"></div>
@@ -32,6 +31,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+
+	.pointer-events-none {
+		pointer-events: none;
 	}
 
 	.pulse-ring {
