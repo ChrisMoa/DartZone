@@ -4,13 +4,15 @@
 	import ThrowHistory from '$lib/components/scoring/ThrowHistory.svelte';
 	import TurnIndicator from '$lib/components/scoring/TurnIndicator.svelte';
 	import CheckoutHelper from '$lib/components/scoring/CheckoutHelper.svelte';
+	import LegHistory from '$lib/components/scoring/LegHistory.svelte';
+	import type { LegRecord } from '$lib/components/scoring/LegHistory.svelte';
 	import AnimationOverlay from '$lib/components/animations/AnimationOverlay.svelte';
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
 	import PlayerStatsCard from '$lib/components/scoring/PlayerStatsCard.svelte';
 	import type { PlayerStats } from '$lib/components/scoring/PlayerStatsCard.svelte';
 	import { createGameState, type GameStore } from '$lib/stores/game.svelte.js';
 	import { createAnimationStore } from '$lib/stores/animation.svelte.js';
-	import type { Multiplier, SectorValue } from '$lib/types/game.js';
+	import type { DartThrow, Multiplier, SectorValue } from '$lib/types/game.js';
 	import type { Player } from '$lib/types/club.js';
 
 	let { data } = $props();
@@ -26,6 +28,61 @@
 
 	let game = $state<GameStore | null>(null);
 	const animations = createAnimationStore();
+
+	// Leg history tracking
+	let completedLegs = $state<LegRecord[]>([]);
+
+	function extractLegRecord(g: GameStore): LegRecord {
+		const throws = g.throws;
+		const winnerId = g.winner_player_id!;
+		const winner = winnerId === g.home_player.id ? g.home_player : g.away_player;
+
+		// Darts thrown by the winner
+		const winnerThrows = throws.filter((t) => t.player_id === winnerId && !t.is_bust);
+		const dartsThrown = throws.filter((t) => t.player_id === winnerId).length;
+
+		// Highest turn score (sum of non-bust throws in a single turn for the winner)
+		const turnMap = new Map<number, number>();
+		for (const t of winnerThrows) {
+			turnMap.set(t.turn_number, (turnMap.get(t.turn_number) ?? 0) + t.score);
+		}
+		const highestTurn = turnMap.size > 0 ? Math.max(...turnMap.values()) : 0;
+
+		// Checkout score: score of the final throw
+		const lastThrow = [...throws].reverse().find((t) => t.player_id === winnerId && !t.is_bust);
+		const checkoutScore = lastThrow?.score ?? 0;
+
+		return {
+			legNumber: g.leg_number,
+			winnerName: `${winner.first_name} ${winner.last_name}`,
+			dartsThrown,
+			highestTurn,
+			checkoutScore
+		};
+	}
+
+	// Best-of / match progress derived values
+	const legsToWin = $derived(Math.ceil(data.tournament.sets_per_match / 2));
+	const totalLegs = $derived(data.tournament.sets_per_match);
+
+	const bestOfText = $derived(`Best of ${totalLegs} Legs`);
+
+	const progressText = $derived.by(() => {
+		const homeNeeds = legsToWin - homeLegsWon;
+		const awayNeeds = legsToWin - awayLegsWon;
+
+		if (homeLegsWon === awayLegsWon) return 'Gleichstand';
+		if (homeLegsWon > awayLegsWon) {
+			if (homeNeeds === 1) return `${data.match.home_club.short_name}: Match Point!`;
+			return `${data.match.home_club.short_name} führt — noch ${homeNeeds} Leg${homeNeeds !== 1 ? 's' : ''} zum Sieg`;
+		}
+		if (awayNeeds === 1) return `${data.match.away_club.short_name}: Match Point!`;
+		return `${data.match.away_club.short_name} führt — noch ${awayNeeds} Leg${awayNeeds !== 1 ? 's' : ''} zum Sieg`;
+	});
+
+	const isMatchPoint = $derived(
+		(legsToWin - homeLegsWon === 1) || (legsToWin - awayLegsWon === 1)
+	);
 
 	// Player stats for the selection screen
 	let homeStats = $state<PlayerStats | null>(null);
@@ -123,6 +180,9 @@
 		legSaving = true;
 		const winnerSide = game.winner_player_id === game.home_player.id ? 'home' : 'away';
 
+		// Capture leg record before resetting game state
+		const legRecord = extractLegRecord(game);
+
 		try {
 			const formData = new FormData();
 			formData.set('winner_side', winnerSide);
@@ -138,6 +198,8 @@
 				return;
 			}
 
+			completedLegs = [...completedLegs, legRecord];
+
 			if (winnerSide === 'home') {
 				homeLegsWon++;
 			} else {
@@ -145,7 +207,6 @@
 			}
 
 			// Check for match completion
-			const legsToWin = Math.ceil(data.tournament.sets_per_match / 2);
 			if (homeLegsWon >= legsToWin || awayLegsWon >= legsToWin) {
 				matchCompleted = true;
 				return;
@@ -178,32 +239,48 @@
 	</div>
 
 	<!-- Match Score Header -->
-	<div class="flex items-center justify-center gap-6 p-4 bg-base-100 rounded-lg shadow-sm" data-testid="match-score-header">
-		<div class="flex items-center gap-2">
-			<ClubCrest
-				club_id={data.match.home_club.id}
-				has_crest={data.match.home_club.has_crest}
-				crest_url={data.match.home_club.crest_url}
-				club_name={data.match.home_club.name}
-				primary_color={data.match.home_club.primary_color}
-				size={40}
-			/>
-			<span class="font-bold">{data.match.home_club.short_name}</span>
+	<div class="flex flex-col items-center gap-1 p-4 bg-base-100 rounded-lg shadow-sm" data-testid="match-score-header">
+		<div class="flex items-center justify-center gap-6 w-full">
+			<div class="flex items-center gap-2">
+				<ClubCrest
+					club_id={data.match.home_club.id}
+					has_crest={data.match.home_club.has_crest}
+					crest_url={data.match.home_club.crest_url}
+					club_name={data.match.home_club.name}
+					primary_color={data.match.home_club.primary_color}
+					size={40}
+				/>
+				<span class="font-bold">{data.match.home_club.short_name}</span>
+			</div>
+			<div class="text-3xl font-bold tabular-nums" data-testid="match-legs-score">
+				{homeLegsWon} : {awayLegsWon}
+			</div>
+			<div class="flex items-center gap-2">
+				<span class="font-bold">{data.match.away_club.short_name}</span>
+				<ClubCrest
+					club_id={data.match.away_club.id}
+					has_crest={data.match.away_club.has_crest}
+					crest_url={data.match.away_club.crest_url}
+					club_name={data.match.away_club.name}
+					primary_color={data.match.away_club.primary_color}
+					size={40}
+				/>
+			</div>
 		</div>
-		<div class="text-3xl font-bold tabular-nums" data-testid="match-legs-score">
-			{homeLegsWon} : {awayLegsWon}
-		</div>
-		<div class="flex items-center gap-2">
-			<span class="font-bold">{data.match.away_club.short_name}</span>
-			<ClubCrest
-				club_id={data.match.away_club.id}
-				has_crest={data.match.away_club.has_crest}
-				crest_url={data.match.away_club.crest_url}
-				club_name={data.match.away_club.name}
-				primary_color={data.match.away_club.primary_color}
-				size={40}
-			/>
-		</div>
+
+		<!-- Best-of indicator -->
+		{#if matchStarted && !matchCompleted}
+			<div class="flex flex-col items-center gap-1 mt-1" data-testid="best-of-indicator">
+				<span class="text-xs text-base-content/50">{bestOfText}</span>
+				{#if isMatchPoint}
+					<span class="badge badge-warning animate-pulse font-semibold" data-testid="match-point-badge">
+						{progressText}
+					</span>
+				{:else}
+					<span class="text-xs text-base-content/60" data-testid="progress-text">{progressText}</span>
+				{/if}
+			</div>
+		{/if}
 	</div>
 
 	{#if matchCompleted}
@@ -213,6 +290,11 @@
 				<p class="text-lg">
 					{homeLegsWon > awayLegsWon ? data.match.home_club.name : data.match.away_club.name} gewinnt!
 				</p>
+				{#if completedLegs.length > 0}
+					<div class="mt-4">
+						<LegHistory legs={completedLegs} currentLegNumber={legNumber} />
+					</div>
+				{/if}
 				<a href="/tournaments/{data.tournament.id}" class="btn btn-primary mt-4">Zum Turnier</a>
 			</div>
 		</div>
@@ -284,6 +366,9 @@
 		<ScoreBoard {game} />
 
 		<TurnIndicator {game} />
+
+		<!-- Leg History -->
+		<LegHistory legs={completedLegs} currentLegNumber={legNumber} />
 
 		<div class="grid gap-4 lg:grid-cols-2">
 			<div class="flex flex-col items-center gap-4">
