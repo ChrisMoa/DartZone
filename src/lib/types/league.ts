@@ -10,6 +10,10 @@ export interface Tournament {
 	start_date: string | null;
 	end_date: string | null;
 	is_active: boolean;
+	organizer_name: string | null;
+	has_organizer_logo: boolean;
+	organizer_contact: string | null;
+	organizer_note: string | null;
 }
 
 export interface Match {

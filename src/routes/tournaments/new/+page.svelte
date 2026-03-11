@@ -5,7 +5,7 @@
 <div class="mx-auto max-w-lg">
 	<h1 class="text-2xl font-bold mb-6">Neues Turnier</h1>
 
-	<form method="POST" class="flex flex-col gap-4" data-testid="tournament-form">
+	<form method="POST" enctype="multipart/form-data" class="flex flex-col gap-4" data-testid="tournament-form">
 		<div class="form-control">
 			<label class="label" for="name">Name</label>
 			<input
@@ -63,6 +63,61 @@
 				<span>Aktives Turnier</span>
 			</label>
 		</div>
+
+		<!-- Organizer section (collapsible) -->
+		<details class="collapse collapse-arrow bg-base-200">
+			<summary class="collapse-title font-medium">Veranstalter (optional)</summary>
+			<div class="collapse-content flex flex-col gap-3 pt-2">
+				<div class="form-control">
+					<label class="label" for="organizer_name">Name</label>
+					<input
+						type="text"
+						id="organizer_name"
+						name="organizer_name"
+						class="input input-bordered w-full"
+						placeholder="Dart Club Musterstadt"
+						data-testid="organizer-name"
+					/>
+				</div>
+
+				<div class="form-control">
+					<label class="label" for="organizer_logo">Logo</label>
+					<input
+						type="file"
+						id="organizer_logo"
+						name="organizer_logo"
+						accept="image/png,image/jpeg,image/svg+xml"
+						class="file-input file-input-bordered w-full"
+						data-testid="organizer-logo"
+					/>
+				</div>
+
+				<div class="form-control">
+					<label class="label" for="organizer_contact">Kontakt</label>
+					<input
+						type="text"
+						id="organizer_contact"
+						name="organizer_contact"
+						class="input input-bordered w-full"
+						placeholder="info@example.com"
+						data-testid="organizer-contact"
+					/>
+				</div>
+
+				<div class="form-control">
+					<label class="label" for="organizer_note">Notiz</label>
+					<textarea
+						id="organizer_note"
+						name="organizer_note"
+						class="textarea textarea-bordered w-full"
+						maxlength="300"
+						rows="2"
+						placeholder="Herzlich willkommen!"
+						data-testid="organizer-note"
+					></textarea>
+				</div>
+			</div>
+		</details>
 
 		<div class="flex gap-2 justify-end mt-4">
 			<a href="/tournaments" class="btn btn-ghost">Abbrechen</a>
