@@ -523,7 +523,7 @@
 			</div>
 
 			<div class="flex flex-col gap-4">
-				<CheckoutHelper remaining={game.currentRemaining} checkoutRoute={game.checkoutRoute} />
+				<CheckoutHelper remaining={game.currentRemaining} checkoutRoutes={game.checkoutRoutes} />
 				<ThrowHistory throws={game.throws} currentTurnThrows={game.currentTurnThrows} />
 			</div>
 		</div>
