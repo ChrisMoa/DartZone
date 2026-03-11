@@ -2,10 +2,13 @@
 	import '../app.css';
 	import { setContext } from 'svelte';
 	import { createThemeStore } from '$lib/stores/theme.svelte.js';
+	import { createSettingsStore } from '$lib/stores/settings.svelte.js';
 
 	let { children } = $props();
 	const themeStore = createThemeStore();
+	const settingsStore = createSettingsStore();
 	setContext('theme', themeStore);
+	setContext('settings', settingsStore);
 
 	$effect(() => {
 		themeStore.apply();
