@@ -70,7 +70,11 @@ export const seedTournaments: Tournament[] = [
 		sets_per_match: 5,
 		start_date: '2026-03-15',
 		end_date: null,
-		is_active: true
+		is_active: true,
+		organizer_name: null,
+		has_organizer_logo: false,
+		organizer_contact: null,
+		organizer_note: null
 	}
 ];
 

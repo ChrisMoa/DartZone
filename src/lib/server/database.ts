@@ -18,12 +18,33 @@ export function getDatabase(dbPath?: string): Database.Database {
 	db.pragma('journal_mode = WAL');
 	db.pragma('foreign_keys = ON');
 	db.exec(SCHEMA_SQL);
+	runMigrations(db);
 
 	return db;
 }
 
 export function getDefaultDbPath(): string {
 	return process.env.DARTZONE_DB_PATH ?? 'data/dartzone.db';
+}
+
+/** Add columns that may not exist in older databases. */
+function runMigrations(database: Database.Database): void {
+	const cols = database.prepare("PRAGMA table_info('tournaments')").all() as Array<{ name: string }>;
+	const colNames = new Set(cols.map((c) => c.name));
+
+	const migrations: [string, string][] = [
+		['organizer_name', 'ALTER TABLE tournaments ADD COLUMN organizer_name TEXT'],
+		['organizer_logo', 'ALTER TABLE tournaments ADD COLUMN organizer_logo BLOB'],
+		['organizer_logo_mime', 'ALTER TABLE tournaments ADD COLUMN organizer_logo_mime TEXT'],
+		['organizer_contact', 'ALTER TABLE tournaments ADD COLUMN organizer_contact TEXT'],
+		['organizer_note', 'ALTER TABLE tournaments ADD COLUMN organizer_note TEXT']
+	];
+
+	for (const [col, sql] of migrations) {
+		if (!colNames.has(col)) {
+			database.exec(sql);
+		}
+	}
 }
 
 export function closeDatabase(): void {
