@@ -64,6 +64,18 @@ else
   ssh "$REMOTE" "cd $REMOTE_DIR && npm install && npm run build"
 fi
 
+# Write runtime environment variables to server
+echo "🔐 Writing runtime environment to server..."
+{
+  echo "DARTZONE_DB_PATH=${DARTZONE_DB_PATH:-data/dartzone.db}"
+  [ -n "$GITHUB_TOKEN" ] && echo "GITHUB_TOKEN=$GITHUB_TOKEN"
+} | ssh "$REMOTE" "cat > $REMOTE_DIR/.env"
+
+# Ensure systemd service loads the .env file
+echo "🔧 Ensuring systemd EnvironmentFile is configured..."
+ssh "$REMOTE" "grep -q 'EnvironmentFile' /etc/systemd/system/dartzone.service 2>/dev/null || \
+  (sed -i '/\[Service\]/a EnvironmentFile=$REMOTE_DIR/.env' /etc/systemd/system/dartzone.service && systemctl daemon-reload)"
+
 echo "🔁 Restarting DartZone service..."
 ssh "$REMOTE" "systemctl restart dartzone"
 
