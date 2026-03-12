@@ -31,6 +31,7 @@
 				<li><a href="/stats">Statistiken</a></li>
 				<li><a href="/import">Excel-Import</a></li>
 				<li><a href="/export">Backup</a></li>
+				<li><a href="/feedback">Feedback</a></li>
 			</ul>
 			<a
 				href="/settings"
