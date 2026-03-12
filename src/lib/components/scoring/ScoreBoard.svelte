@@ -18,7 +18,8 @@
 	let timerEnabled = $state(settingsStore.settings.timerEnabled);
 	let elapsedSeconds = $state(0);
 	let timerStarted = $state(false);
-	let intervalId = $state<ReturnType<typeof setInterval> | null>(null);
+	// NOT $state — must not create reactive dependencies in effects
+	let intervalId: ReturnType<typeof setInterval> | null = null;
 
 	function formatTime(secs: number): string {
 		const m = Math.floor(secs / 60).toString().padStart(2, '0');
