@@ -110,7 +110,7 @@ async function importJson(file: File) {
 
 		// Import tournaments
 		const insertTournament = db.prepare(
-			`INSERT OR IGNORE INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, is_active)
+			`INSERT OR IGNORE INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, status)
 			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 		);
 		const insertTournamentClub = db.prepare(
@@ -131,7 +131,7 @@ async function importJson(file: File) {
 				tournament.sets_per_match ?? 5,
 				tournament.start_date ?? null,
 				tournament.end_date ?? null,
-				tournament.is_active ? 1 : 0
+				tournament.status ?? (tournament.is_active ? 'running' : 'planned')
 			);
 
 			// Assign clubs

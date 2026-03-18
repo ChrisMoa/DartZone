@@ -86,7 +86,7 @@
 				</div>
 			{/if}
 			<div class="text-center">
-				<p class="text-base-content/60 mb-4">Kein aktives Turnier vorhanden.</p>
+				<p class="text-base-content/60 mb-4">Kein laufendes Turnier vorhanden.</p>
 				<a href="/tournaments/new" class="btn btn-primary">Turnier erstellen</a>
 			</div>
 		</div>

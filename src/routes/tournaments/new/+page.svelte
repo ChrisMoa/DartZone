@@ -58,10 +58,11 @@
 		</div>
 
 		<div class="form-control">
-			<label class="label cursor-pointer justify-start gap-2">
-				<input type="checkbox" name="is_active" class="checkbox" />
-				<span>Aktives Turnier</span>
-			</label>
+			<label class="label" for="status">Status</label>
+			<select id="status" name="status" class="select select-bordered w-full" data-testid="tournament-form-status">
+				<option value="planned">Geplant</option>
+				<option value="running">Laufend</option>
+			</select>
 		</div>
 
 		<!-- Organizer section (collapsible) -->
