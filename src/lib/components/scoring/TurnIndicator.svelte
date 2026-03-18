@@ -1,8 +1,9 @@
 <script lang="ts">
 	import type { GameStore } from '$lib/stores/game.svelte.js';
+	import type { CricketGameStore } from '$lib/stores/cricket-game.svelte.js';
 
 	interface Props {
-		game: GameStore;
+		game: GameStore | CricketGameStore;
 	}
 
 	let { game }: Props = $props();

@@ -1,4 +1,5 @@
-import type { Multiplier, SectorValue } from '$lib/types/game.js';
+import type { CricketMarks, CricketPlayerState, Multiplier, SectorValue } from '$lib/types/game.js';
+import { CRICKET_SEGMENTS } from '$lib/types/game.js';
 
 /**
  * Calculate score from a sector hit and multiplier.
@@ -63,4 +64,82 @@ export function isCheckout(
 		return remainingBefore - score <= 0;
 	}
 	return remainingBefore - score === 0 && multiplier === 2;
+}
+
+// --- Cricket scoring ---
+
+export function isCricketSegment(sector: SectorValue): boolean {
+	return (CRICKET_SEGMENTS as readonly number[]).includes(sector);
+}
+
+export function createEmptyCricketMarks(): CricketMarks {
+	const marks: CricketMarks = {};
+	for (const seg of CRICKET_SEGMENTS) {
+		marks[seg] = 0;
+	}
+	return marks;
+}
+
+/**
+ * Calculate the result of a cricket throw.
+ * Returns how many new marks are applied and how many points are scored.
+ * A hit on a non-cricket segment or a miss scores nothing.
+ * Marks beyond 3 on a closed-by-opponent segment score points instead.
+ */
+export function calcCricketThrow(
+	sector: SectorValue,
+	multiplier: Multiplier,
+	throwerMarks: CricketMarks,
+	opponentMarks: CricketMarks
+): { newMarks: number; points: number } {
+	if (multiplier === 0 || sector === 0 || !isCricketSegment(sector)) {
+		return { newMarks: 0, points: 0 };
+	}
+
+	// Bull: single=1 mark, double=2 marks, no triple
+	const hitCount = sector === 25 && multiplier === 3 ? 0 : multiplier;
+	if (hitCount === 0) return { newMarks: 0, points: 0 };
+
+	const currentMarks = throwerMarks[sector] ?? 0;
+	const opponentClosed = (opponentMarks[sector] ?? 0) >= 3;
+
+	// Marks needed to close this segment (max 3)
+	const marksToClose = Math.max(0, 3 - currentMarks);
+	const newMarks = Math.min(hitCount, marksToClose);
+
+	// Extra hits beyond closing score points (only if opponent hasn't closed)
+	let points = 0;
+	if (!opponentClosed) {
+		const extraHits = hitCount - marksToClose;
+		if (extraHits > 0) {
+			const pointValue = sector === 25 ? 25 : sector;
+			points = extraHits * pointValue;
+		}
+	}
+
+	return { newMarks, points };
+}
+
+/**
+ * Check if a player has closed all cricket segments.
+ */
+export function hasClosedAll(marks: CricketMarks): boolean {
+	return CRICKET_SEGMENTS.every((seg) => (marks[seg] ?? 0) >= 3);
+}
+
+/**
+ * Check if cricket game is over.
+ * Game ends when a player has closed all segments AND has >= opponent's points.
+ */
+export function isCricketGameOver(
+	homeState: CricketPlayerState,
+	awayState: CricketPlayerState
+): string | null {
+	const homeClosed = hasClosedAll(homeState.marks);
+	const awayClosed = hasClosedAll(awayState.marks);
+
+	if (homeClosed && homeState.points >= awayState.points) return 'home';
+	if (awayClosed && awayState.points >= homeState.points) return 'away';
+
+	return null;
 }

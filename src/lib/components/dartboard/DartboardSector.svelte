@@ -7,10 +7,11 @@
 		multiplier: Multiplier;
 		fill: string;
 		disabled?: boolean;
+		dimmed?: boolean;
 		onhit?: (event: { sector: SectorValue; multiplier: Multiplier; score: number }) => void;
 	}
 
-	let { path, sector, multiplier, fill, disabled = false, onhit }: Props = $props();
+	let { path, sector, multiplier, fill, disabled = false, dimmed = false, onhit }: Props = $props();
 
 	let hovered = $state(false);
 
@@ -27,6 +28,7 @@
 	tabindex="0"
 	class="dartboard-sector"
 	class:disabled
+	class:dimmed
 	onclick={handleClick}
 	onkeydown={(e) => e.key === 'Enter' && handleClick()}
 	onmouseenter={() => (hovered = true)}
@@ -53,5 +55,8 @@
 	.dartboard-sector.disabled {
 		cursor: default;
 		pointer-events: none;
+	}
+	.dartboard-sector.dimmed {
+		opacity: 0.35;
 	}
 </style>
