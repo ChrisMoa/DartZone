@@ -75,6 +75,18 @@ export const actions: Actions = {
 		return { success: true };
 	},
 
+	updateStatus: async ({ request, params }) => {
+		const formData = await request.formData();
+		const status = formData.get('status') as string;
+		const validStatuses = ['planned', 'running', 'finished', 'aborted'];
+		if (!validStatuses.includes(status)) return fail(400, { error: 'Ungueltiger Status' });
+
+		const updated = await tournamentRepo.updateStatus(params.id, status as 'planned' | 'running' | 'finished' | 'aborted');
+		if (!updated) return fail(404, { error: 'Turnier nicht gefunden' });
+
+		return { success: true };
+	},
+
 	generatePairings: async ({ params }) => {
 		const tournament = await tournamentRepo.getById(params.id);
 		if (!tournament) return fail(404, { error: 'Turnier nicht gefunden' });

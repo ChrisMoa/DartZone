@@ -55,7 +55,7 @@ export const tournamentSchema = z.object({
 	sets_per_match: z.number().int().min(1).max(13),
 	start_date: z.string().nullable().optional().default(null),
 	end_date: z.string().nullable().optional().default(null),
-	is_active: z.boolean().default(false)
+	status: z.enum(['planned', 'running', 'finished', 'aborted']).default('planned')
 });
 
 export type ClubFormData = z.infer<typeof clubSchema>;
