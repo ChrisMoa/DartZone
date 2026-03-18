@@ -43,7 +43,19 @@ function loadSettings(): AppSettings {
 	if (stored) {
 		try {
 			const parsed = JSON.parse(stored);
-			return { ...DEFAULTS, ...parsed };
+			const result = { ...DEFAULTS, ...parsed };
+
+			// Migration: switch dartboard → keypad default (introduced after #44)
+			if (!parsed._migratedKeypadDefault && result.inputMode === 'dartboard') {
+				result.inputMode = 'keypad';
+				result._migratedKeypadDefault = true;
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
+			} else if (!parsed._migratedKeypadDefault) {
+				result._migratedKeypadDefault = true;
+				localStorage.setItem(STORAGE_KEY, JSON.stringify(result));
+			}
+
+			return result;
 		} catch { /* ignore */ }
 	}
 
