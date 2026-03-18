@@ -64,6 +64,23 @@ CREATE TABLE IF NOT EXISTS matches (
 	FOREIGN KEY (away_club_id) REFERENCES clubs(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS dart_throws (
+	id TEXT PRIMARY KEY,
+	match_id TEXT NOT NULL,
+	leg_number INTEGER NOT NULL,
+	player_id TEXT NOT NULL,
+	turn_number INTEGER NOT NULL,
+	dart_number INTEGER NOT NULL CHECK (dart_number IN (1, 2, 3)),
+	sector INTEGER NOT NULL,
+	multiplier INTEGER NOT NULL CHECK (multiplier IN (0, 1, 2, 3)),
+	score INTEGER NOT NULL,
+	remaining_score INTEGER NOT NULL,
+	is_bust INTEGER NOT NULL DEFAULT 0,
+	thrown_at TEXT NOT NULL,
+	FOREIGN KEY (match_id) REFERENCES matches(id) ON DELETE CASCADE,
+	FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS animation_assets (
 	event TEXT PRIMARY KEY,
 	data BLOB NOT NULL,
