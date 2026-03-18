@@ -1,6 +1,7 @@
 import type { Club } from '$lib/types/club.js';
 import type { Player } from '$lib/types/club.js';
 import type { Tournament, Match, Standing } from '$lib/types/league.js';
+import type { DartThrow } from '$lib/types/game.js';
 
 export interface ClubRepository {
 	getAll(): Promise<Club[]>;
@@ -61,6 +62,13 @@ export interface AnimationAssetRepository {
 	getData(event: string): Promise<{ data: Buffer; mime: string } | null>;
 	upsert(event: string, data: Buffer, mime: string, duration_ms: number, position: string): Promise<AnimationAsset>;
 	delete(event: string): Promise<boolean>;
+}
+
+export interface ThrowRepository {
+	saveBatch(throws: DartThrow[]): Promise<void>;
+	getByMatch(matchId: string): Promise<DartThrow[]>;
+	getByPlayer(playerId: string): Promise<DartThrow[]>;
+	getByMatchAndLeg(matchId: string, legNumber: number): Promise<DartThrow[]>;
 }
 
 export interface StandingsService {
