@@ -34,8 +34,8 @@ function seedDatabase(): void {
 		 VALUES (@id, @club_id, @first_name, @last_name, @nickname, @created_at)`
 	);
 	const insertTournament = db.prepare(
-		`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, is_active)
-		 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @is_active)`
+		`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, status)
+		 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @status)`
 	);
 	const insertTournamentClub = db.prepare(
 		`INSERT INTO tournament_clubs (tournament_id, club_id) VALUES (?, ?)`
@@ -53,7 +53,7 @@ function seedDatabase(): void {
 			insertPlayer.run(player);
 		}
 		for (const tournament of seedTournaments) {
-			insertTournament.run({ ...tournament, is_active: tournament.is_active ? 1 : 0 });
+			insertTournament.run(tournament);
 		}
 		for (const [tournamentId, clubIds] of Object.entries(seedTournamentClubs)) {
 			for (const clubId of clubIds) {

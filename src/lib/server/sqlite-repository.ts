@@ -217,7 +217,7 @@ export class SqlitePlayerRepository implements PlayerRepository {
 // --- Tournament Repository ---
 
 const TOURNAMENT_COLUMNS = `id, name, game_mode, format, legs_per_set, sets_per_match,
-	start_date, end_date, is_active, organizer_name, organizer_contact, organizer_note,
+	start_date, end_date, status, organizer_name, organizer_contact, organizer_note,
 	(organizer_logo IS NOT NULL) as has_organizer_logo`;
 
 interface TournamentRow {
@@ -229,7 +229,7 @@ interface TournamentRow {
 	sets_per_match: number;
 	start_date: string | null;
 	end_date: string | null;
-	is_active: number;
+	status: string;
 	organizer_name: string | null;
 	organizer_contact: string | null;
 	organizer_note: string | null;
@@ -249,7 +249,7 @@ export class SqliteTournamentRepository implements TournamentRepository {
 			sets_per_match: row.sets_per_match,
 			start_date: row.start_date,
 			end_date: row.end_date,
-			is_active: row.is_active === 1,
+			status: row.status as Tournament['status'],
 			organizer_name: row.organizer_name,
 			has_organizer_logo: row.has_organizer_logo === 1,
 			organizer_contact: row.organizer_contact,
@@ -269,7 +269,7 @@ export class SqliteTournamentRepository implements TournamentRepository {
 	}
 
 	async getActive(): Promise<Tournament | null> {
-		const row = this.db.prepare(`SELECT ${TOURNAMENT_COLUMNS} FROM tournaments WHERE is_active = 1`).get() as TournamentRow | undefined;
+		const row = this.db.prepare(`SELECT ${TOURNAMENT_COLUMNS} FROM tournaments WHERE status = 'running'`).get() as TournamentRow | undefined;
 		if (!row) return null;
 		return this.rowToTournament(row);
 	}
@@ -278,8 +278,8 @@ export class SqliteTournamentRepository implements TournamentRepository {
 		const id = generateId();
 		this.db
 			.prepare(
-				`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, is_active, organizer_name, organizer_contact, organizer_note)
-				 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @is_active, @organizer_name, @organizer_contact, @organizer_note)`
+				`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, status, organizer_name, organizer_contact, organizer_note)
+				 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @status, @organizer_name, @organizer_contact, @organizer_note)`
 			)
 			.run({
 				id,
@@ -290,7 +290,7 @@ export class SqliteTournamentRepository implements TournamentRepository {
 				sets_per_match: data.sets_per_match,
 				start_date: data.start_date,
 				end_date: data.end_date,
-				is_active: data.is_active ? 1 : 0,
+				status: data.status,
 				organizer_name: data.organizer_name ?? null,
 				organizer_contact: data.organizer_contact ?? null,
 				organizer_note: data.organizer_note ?? null
@@ -307,17 +307,23 @@ export class SqliteTournamentRepository implements TournamentRepository {
 				`UPDATE tournaments SET name = @name, game_mode = @game_mode, format = @format,
 				 legs_per_set = @legs_per_set, sets_per_match = @sets_per_match,
 				 start_date = @start_date, end_date = @end_date,
-				 is_active = @is_active, organizer_name = @organizer_name,
+				 status = @status, organizer_name = @organizer_name,
 				 organizer_contact = @organizer_contact, organizer_note = @organizer_note
 				 WHERE id = @id`
 			)
 			.run({
 				...updated,
-				is_active: updated.is_active ? 1 : 0,
 				organizer_name: updated.organizer_name ?? null,
 				organizer_contact: updated.organizer_contact ?? null,
 				organizer_note: updated.organizer_note ?? null
 			});
+		return this.getById(id);
+	}
+
+	async updateStatus(id: string, status: Tournament['status']): Promise<Tournament | null> {
+		const existing = await this.getById(id);
+		if (!existing) return null;
+		this.db.prepare('UPDATE tournaments SET status = ? WHERE id = ?').run(status, id);
 		return this.getById(id);
 	}
 

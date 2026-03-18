@@ -154,7 +154,7 @@ describe('tournamentSchema', () => {
 			legs_per_set: 3,
 			sets_per_match: 5,
 			start_date: '2026-03-15',
-			is_active: true
+			status: 'running'
 		});
 		expect(result.success).toBe(true);
 	});
