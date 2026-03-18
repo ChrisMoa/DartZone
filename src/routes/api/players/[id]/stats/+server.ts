@@ -1,71 +1,77 @@
 import type { RequestHandler } from './$types.js';
 import { json, error } from '@sveltejs/kit';
-import { playerRepo } from '$lib/server/db.js';
-import { getDatabase } from '$lib/server/database.js';
-
-interface PlayerStats {
-	average: number | null;
-	checkoutPct: number | null;
-	legsPlayed: number;
-}
+import { playerRepo, throwRepo } from '$lib/server/db.js';
+import {
+	calcAverage,
+	countCheckoutAttempts,
+	countCheckoutSuccesses,
+	calcCheckoutPercentage,
+	calcHighestTurnScore,
+	count180s,
+	countTonPlus,
+	buildSectorCounts
+} from '$lib/utils/statistics.js';
+import type { PlayerOverallStats } from '$lib/utils/statistics.js';
 
 export const GET: RequestHandler = async ({ params }) => {
 	const player = await playerRepo.getById(params.id);
 	if (!player) throw error(404, 'Spieler nicht gefunden');
 
-	// TODO: replace with real throw data once a dart_throws table is added to the schema
-	// Currently the schema has no throws table, so we always return null/zero values.
-	const db = getDatabase();
-	const hasThrowsTable = db
-		.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='dart_throws'")
-		.get();
+	const throws = await throwRepo.getByPlayer(params.id);
 
-	if (!hasThrowsTable) {
-		return json({ average: null, checkoutPct: null, legsPlayed: 0 } satisfies PlayerStats);
+	if (throws.length === 0) {
+		const empty: PlayerOverallStats = {
+			player_id: player.id,
+			player_name: `${player.first_name} ${player.last_name}`,
+			matches_played: 0,
+			total_darts: 0,
+			overall_average: 0,
+			best_average: 0,
+			highest_score: 0,
+			total_180s: 0,
+			total_ton_plus: 0,
+			checkout_percentage: 0,
+			total_checkout_attempts: 0,
+			total_checkout_successes: 0,
+			sector_counts: {}
+		};
+		return json(empty);
 	}
 
-	// Aggregate stats from last 5 legs this player participated in
-	const rows = db
-		.prepare(
-			`SELECT
-				SUM(score)     AS total_score,
-				COUNT(*)       AS total_darts,
-				SUM(is_bust=0 AND remaining_score=0 AND multiplier=2) AS checkouts,
-				COUNT(DISTINCT turn_number || '-' || game_id) AS total_turns
-			FROM dart_throws
-			WHERE player_id = ?
-			AND game_id IN (
-				SELECT DISTINCT game_id FROM dart_throws WHERE player_id = ? ORDER BY thrown_at DESC LIMIT 5
-			)`
-		)
-		.get(params.id, params.id) as {
-		total_score: number | null;
-		total_darts: number | null;
-		checkouts: number | null;
-		total_turns: number | null;
+	// Group throws by match for per-match averages
+	const matchMap = new Map<string, typeof throws>();
+	for (const t of throws) {
+		const key = t.game_id;
+		const arr = matchMap.get(key) ?? [];
+		arr.push(t);
+		matchMap.set(key, arr);
+	}
+
+	const matchAverages: number[] = [];
+	const matchHighests: number[] = [];
+	for (const matchThrows of matchMap.values()) {
+		matchAverages.push(calcAverage(matchThrows));
+		matchHighests.push(calcHighestTurnScore(matchThrows));
+	}
+
+	const checkoutAttempts = countCheckoutAttempts(throws);
+	const checkoutSuccesses = countCheckoutSuccesses(throws);
+
+	const stats: PlayerOverallStats = {
+		player_id: player.id,
+		player_name: `${player.first_name} ${player.last_name}`,
+		matches_played: matchMap.size,
+		total_darts: throws.length,
+		overall_average: calcAverage(throws),
+		best_average: Math.max(...matchAverages, 0),
+		highest_score: Math.max(...matchHighests, 0),
+		total_180s: count180s(throws),
+		total_ton_plus: countTonPlus(throws),
+		checkout_percentage: calcCheckoutPercentage(checkoutAttempts, checkoutSuccesses),
+		total_checkout_attempts: checkoutAttempts,
+		total_checkout_successes: checkoutSuccesses,
+		sector_counts: buildSectorCounts(throws)
 	};
 
-	const legsRow = db
-		.prepare(
-			`SELECT COUNT(DISTINCT game_id) as legs FROM dart_throws WHERE player_id = ?`
-		)
-		.get(params.id) as { legs: number };
-
-	const legsPlayed = legsRow?.legs ?? 0;
-
-	if (!rows || !rows.total_darts || rows.total_darts === 0) {
-		return json({ average: null, checkoutPct: null, legsPlayed } satisfies PlayerStats);
-	}
-
-	const average = ((rows.total_score ?? 0) / rows.total_darts) * 3;
-	const checkoutPct =
-		rows.total_turns && rows.total_turns > 0
-			? ((rows.checkouts ?? 0) / rows.total_turns) * 100
-			: null;
-
-	return json({
-		average: Math.round(average * 10) / 10,
-		checkoutPct: checkoutPct !== null ? Math.round(checkoutPct) : null,
-		legsPlayed
-	} satisfies PlayerStats);
+	return json(stats);
 };
