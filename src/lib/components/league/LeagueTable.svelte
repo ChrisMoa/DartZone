@@ -13,16 +13,16 @@
 	<table class="table">
 		<thead>
 			<tr>
-				<th class="w-8">#</th>
-				<th>Verein</th>
-				<th class="text-center">Sp</th>
-				<th class="text-center">S</th>
-				<th class="text-center">U</th>
-				<th class="text-center">N</th>
-				<th class="text-center">LF</th>
-				<th class="text-center">LA</th>
-				<th class="text-center">LD</th>
-				<th class="text-center font-bold">Pkt</th>
+				<th scope="col" class="w-8">#</th>
+				<th scope="col">Verein</th>
+				<th scope="col" class="text-center">Sp</th>
+				<th scope="col" class="text-center">S</th>
+				<th scope="col" class="text-center">U</th>
+				<th scope="col" class="text-center">N</th>
+				<th scope="col" class="text-center">LF</th>
+				<th scope="col" class="text-center">LA</th>
+				<th scope="col" class="text-center">LD</th>
+				<th scope="col" class="text-center font-bold">Pkt</th>
 			</tr>
 		</thead>
 		<tbody>
