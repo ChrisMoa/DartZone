@@ -146,6 +146,8 @@
 	viewBox={viewBox}
 	class="dartboard"
 	data-testid="dartboard"
+	role="group"
+	aria-label="Dartboard"
 >
 	<!-- Background circle -->
 	<circle cx="0" cy="0" r={boardRadius} fill="#2c2c2c" />
@@ -173,6 +175,7 @@
 		stroke-width="0.5"
 		role="button"
 		tabindex="0"
+		aria-label="Single Bull (25)"
 		data-sector="25"
 		data-multiplier="1"
 		class="dartboard-sector"
@@ -191,6 +194,7 @@
 		stroke-width="0.5"
 		role="button"
 		tabindex="0"
+		aria-label="Double Bull (50)"
 		data-sector="25"
 		data-multiplier="2"
 		class="dartboard-sector"

@@ -21,11 +21,19 @@
 	}
 
 	const hoverFill = $derived(hovered && !disabled ? 'rgba(255, 255, 255, 0.2)' : 'transparent');
+
+	const sectorLabel = $derived.by(() => {
+		if (sector === 0) return 'Miss';
+		const ring = multiplier === 3 ? 'Triple' : multiplier === 2 ? 'Double' : 'Single';
+		const name = sector === 25 ? 'Bull' : String(sector);
+		return `${ring} ${name} (${sector * multiplier})`;
+	});
 </script>
 
 <g
 	role="button"
 	tabindex="0"
+	aria-label={sectorLabel}
 	class="dartboard-sector"
 	class:disabled
 	class:dimmed
@@ -45,6 +53,11 @@
 		cursor: pointer;
 		outline: none;
 		transition: filter 0.15s ease;
+	}
+	.dartboard-sector:focus-visible {
+		filter: brightness(1.5);
+		outline: 2px solid currentColor;
+		outline-offset: -2px;
 	}
 	.dartboard-sector:hover:not(.disabled) {
 		filter: brightness(1.3);

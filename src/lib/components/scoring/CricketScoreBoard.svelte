@@ -99,7 +99,7 @@
 	}
 </script>
 
-<div class="flex flex-col gap-2" data-testid="cricket-scoreboard">
+<div class="flex flex-col gap-2" data-testid="cricket-scoreboard" role="region" aria-label="Cricket Punktestand" aria-live="polite" aria-atomic="true">
 	<!-- Player headers -->
 	<div class="grid grid-cols-[1fr_auto_1fr] gap-1 items-center">
 		<div
@@ -117,11 +117,11 @@
 		<div class="flex flex-col items-center gap-1 px-2">
 			<div class="text-sm text-base-content/60">Leg {game.leg_number}</div>
 			{#if timerEnabled}
-				<div class="text-xs font-mono text-base-content/50 tabular-nums">
+				<div class="text-xs font-mono text-base-content/60 tabular-nums">
 					{formatTime(elapsedSeconds)}
 				</div>
 			{/if}
-			<div class="text-xs text-base-content/40">Runde {game.current_turn}</div>
+			<div class="text-xs text-base-content/60">Runde {game.current_turn}</div>
 			{#if game.status === 'completed'}
 				<div class="badge badge-success mt-1 animate-pulse">Gewonnen!</div>
 			{/if}
@@ -129,6 +129,7 @@
 				class="btn btn-ghost btn-xs mt-1 opacity-40 hover:opacity-100"
 				onclick={toggleTimer}
 				title={timerEnabled ? 'Timer ausblenden' : 'Timer einblenden'}
+				aria-label={timerEnabled ? 'Timer ausblenden' : 'Timer einblenden'}
 			>
 				{#if timerEnabled}
 					<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -159,10 +160,10 @@
 	<div class="card bg-base-100 p-3">
 		<table class="w-full text-center" data-testid="cricket-marks-table">
 			<thead>
-				<tr class="text-xs text-base-content/50">
-					<th class="pb-1">Heim</th>
-					<th class="pb-1">Segment</th>
-					<th class="pb-1">Gast</th>
+				<tr class="text-xs text-base-content/60">
+					<th scope="col" class="pb-1">Heim</th>
+					<th scope="col" class="pb-1">Segment</th>
+					<th scope="col" class="pb-1">Gast</th>
 				</tr>
 			</thead>
 			<tbody>

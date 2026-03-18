@@ -88,7 +88,7 @@
 	}
 </script>
 
-<div class="grid grid-cols-3 gap-2" data-testid="scoreboard">
+<div class="grid grid-cols-3 gap-2" data-testid="scoreboard" role="region" aria-label="Punktestand" aria-live="polite" aria-atomic="true">
 	<div
 		class="card p-4 text-center transition-all duration-300 {homeActive ? 'bg-base-100 ring-2 ring-primary shadow-lg shadow-primary/30' : 'bg-base-100'}"
 		data-testid="scoreboard-home"
@@ -99,7 +99,7 @@
 		<div class="text-4xl font-bold my-2 tabular-nums {homeActive ? 'text-primary' : ''}" data-testid="scoreboard-home-remaining">
 			{game.home_remaining}
 		</div>
-		<div class="text-xs opacity-70" data-testid="scoreboard-home-avg">
+		<div class="text-xs text-base-content/70" data-testid="scoreboard-home-avg">
 			Avg: {game.homeAverage.toFixed(1)}
 		</div>
 	</div>
@@ -108,12 +108,12 @@
 		<div class="text-sm text-base-content/60">Leg {game.leg_number}</div>
 
 		{#if timerEnabled}
-			<div class="text-xs font-mono text-base-content/50 tabular-nums" data-testid="scoreboard-timer">
+			<div class="text-xs font-mono text-base-content/60 tabular-nums" data-testid="scoreboard-timer">
 				{formatTime(elapsedSeconds)}
 			</div>
 		{/if}
 
-		<div class="text-xs text-base-content/40">Runde {game.current_turn}</div>
+		<div class="text-xs text-base-content/60">Runde {game.current_turn}</div>
 
 		{#if game.status === 'completed'}
 			<div class="badge badge-success mt-1 animate-pulse" data-testid="scoreboard-completed">Checkout!</div>
@@ -123,6 +123,7 @@
 			class="btn btn-ghost btn-xs mt-1 opacity-40 hover:opacity-100"
 			onclick={toggleTimer}
 			title={timerEnabled ? 'Timer ausblenden' : 'Timer einblenden'}
+			aria-label={timerEnabled ? 'Timer ausblenden' : 'Timer einblenden'}
 			data-testid="scoreboard-timer-toggle"
 		>
 			{#if timerEnabled}
@@ -149,7 +150,7 @@
 		<div class="text-4xl font-bold my-2 tabular-nums {awayActive ? 'text-secondary' : ''}" data-testid="scoreboard-away-remaining">
 			{game.away_remaining}
 		</div>
-		<div class="text-xs opacity-70" data-testid="scoreboard-away-avg">
+		<div class="text-xs text-base-content/70" data-testid="scoreboard-away-avg">
 			Avg: {game.awayAverage.toFixed(1)}
 		</div>
 	</div>
