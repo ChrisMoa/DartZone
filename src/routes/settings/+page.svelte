@@ -605,6 +605,6 @@
 
 	<!-- Version -->
 	<div class="text-center text-xs text-base-content/40 py-4" data-testid="app-version">
-		DartZone v{__APP_VERSION__}
+		DartZone v{__APP_VERSION__} &middot; Build: {__APP_BUILD_DATE__}
 	</div>
 </div>
