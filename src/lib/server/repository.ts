@@ -35,6 +35,7 @@ export interface TournamentRepository {
 	removeClub(tournamentId: string, clubId: string): Promise<void>;
 	getLogoData(id: string): Promise<{ data: Buffer; mime: string } | null>;
 	setLogoData(id: string, data: Buffer, mime: string): Promise<boolean>;
+	updateStatus(id: string, status: Tournament['status']): Promise<Tournament | null>;
 }
 
 export interface MatchRepository {

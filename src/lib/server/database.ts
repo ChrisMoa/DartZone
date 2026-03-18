@@ -37,13 +37,22 @@ function runMigrations(database: Database.Database): void {
 		['organizer_logo', 'ALTER TABLE tournaments ADD COLUMN organizer_logo BLOB'],
 		['organizer_logo_mime', 'ALTER TABLE tournaments ADD COLUMN organizer_logo_mime TEXT'],
 		['organizer_contact', 'ALTER TABLE tournaments ADD COLUMN organizer_contact TEXT'],
-		['organizer_note', 'ALTER TABLE tournaments ADD COLUMN organizer_note TEXT']
+		['organizer_note', 'ALTER TABLE tournaments ADD COLUMN organizer_note TEXT'],
+		['status', 'ALTER TABLE tournaments ADD COLUMN status TEXT NOT NULL DEFAULT \'planned\'']
 	];
 
 	for (const [col, sql] of migrations) {
 		if (!colNames.has(col)) {
 			database.exec(sql);
 		}
+	}
+
+	// Migrate is_active → status
+	if (colNames.has('is_active') && colNames.has('status')) {
+		database.exec(`UPDATE tournaments SET status = 'running' WHERE is_active = 1 AND status = 'planned'`);
+	} else if (colNames.has('is_active') && !colNames.has('status')) {
+		// status column was just added above — migrate values
+		database.exec(`UPDATE tournaments SET status = 'running' WHERE is_active = 1`);
 	}
 }
 

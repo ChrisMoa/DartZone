@@ -1,5 +1,7 @@
 import type { Club } from './club.js';
 
+export type TournamentStatus = 'planned' | 'running' | 'finished' | 'aborted';
+
 export interface Tournament {
 	id: string;
 	name: string;
@@ -9,7 +11,7 @@ export interface Tournament {
 	sets_per_match: number;
 	start_date: string | null;
 	end_date: string | null;
-	is_active: boolean;
+	status: TournamentStatus;
 	organizer_name: string | null;
 	has_organizer_logo: boolean;
 	organizer_contact: string | null;

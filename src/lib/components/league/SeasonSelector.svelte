@@ -21,7 +21,7 @@
 	{#each tournaments as tournament (tournament.id)}
 		<option value={tournament.id}>
 			{tournament.name}
-			{#if tournament.is_active}(aktiv){/if}
+			{#if tournament.status === 'running'}(laufend){/if}
 		</option>
 	{/each}
 </select>

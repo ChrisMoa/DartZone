@@ -14,7 +14,7 @@ export const actions: Actions = {
 			sets_per_match: Number(formData.get('sets_per_match')),
 			start_date: (formData.get('start_date') as string) || null,
 			end_date: (formData.get('end_date') as string) || null,
-			is_active: formData.get('is_active') === 'on',
+			status: (formData.get('status') as string) || 'planned',
 			organizer_name: (formData.get('organizer_name') as string) || null,
 			organizer_contact: (formData.get('organizer_contact') as string) || null,
 			organizer_note: (formData.get('organizer_note') as string) || null

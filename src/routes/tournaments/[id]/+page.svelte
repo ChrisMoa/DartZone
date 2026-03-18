@@ -3,26 +3,51 @@
 	import MatchCard from '$lib/components/league/MatchCard.svelte';
 	import KnockoutBracket from '$lib/components/league/KnockoutBracket.svelte';
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
+	import type { TournamentStatus } from '$lib/types/league.js';
 
 	let { data } = $props();
 
 	const formatLabel = $derived(
 		data.tournament.format === 'round_robin' ? 'Jeder gegen Jeden' : 'K.O.'
 	);
+
+	const STATUS_BADGE: Record<TournamentStatus, { label: string; class: string }> = {
+		planned: { label: 'Geplant', class: 'badge-info' },
+		running: { label: 'Laufend', class: 'badge-success' },
+		finished: { label: 'Beendet', class: 'badge-neutral' },
+		aborted: { label: 'Abgebrochen', class: 'badge-error' }
+	};
+
+	const STATUS_LABELS: Record<TournamentStatus, string> = {
+		planned: 'Geplant',
+		running: 'Laufend',
+		finished: 'Beendet',
+		aborted: 'Abgebrochen'
+	};
 </script>
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center gap-4">
 		<a href="/tournaments" class="btn btn-ghost btn-sm">Zurueck</a>
 		<h1 class="text-2xl font-bold">{data.tournament.name}</h1>
-		{#if data.tournament.is_active}
-			<span class="badge badge-success">Aktiv</span>
-		{/if}
+		<span class="badge {STATUS_BADGE[data.tournament.status].class}" data-testid="tournament-status-badge">
+			{STATUS_BADGE[data.tournament.status].label}
+		</span>
 	</div>
 
-	<div class="text-sm text-base-content/60">
-		{data.tournament.game_mode} &middot; {formatLabel} &middot;
-		{data.tournament.legs_per_set} Legs/Set &middot; {data.tournament.sets_per_match} Sets/Match
+	<div class="flex items-center gap-4 text-sm text-base-content/60">
+		<span>
+			{data.tournament.game_mode} &middot; {formatLabel} &middot;
+			{data.tournament.legs_per_set} Legs/Set &middot; {data.tournament.sets_per_match} Sets/Match
+		</span>
+		<form method="POST" action="?/updateStatus" class="flex items-center gap-2" data-testid="status-form">
+			<select name="status" class="select select-bordered select-xs" value={data.tournament.status} data-testid="status-select">
+				{#each Object.entries(STATUS_LABELS) as [value, label]}
+					<option {value} selected={value === data.tournament.status}>{label}</option>
+				{/each}
+			</select>
+			<button type="submit" class="btn btn-xs btn-outline" data-testid="status-submit">Aendern</button>
+		</form>
 	</div>
 
 	<!-- Organizer card -->
