@@ -13,11 +13,14 @@
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
 	import PlayerStatsCard from '$lib/components/scoring/PlayerStatsCard.svelte';
 	import type { PlayerStats } from '$lib/components/scoring/PlayerStatsCard.svelte';
+	import CricketScoreBoard from '$lib/components/scoring/CricketScoreBoard.svelte';
 	import { getContext } from 'svelte';
 	import { createGameState, type GameStore } from '$lib/stores/game.svelte.js';
+	import { createCricketGameState, type CricketGameStore } from '$lib/stores/cricket-game.svelte.js';
 	import { createAnimationStore } from '$lib/stores/animation.svelte.js';
 	import type { SettingsStore } from '$lib/stores/settings.svelte.js';
 	import type { DartThrow, Multiplier, SectorValue } from '$lib/types/game.js';
+	import { CRICKET_SEGMENTS } from '$lib/types/game.js';
 	import type { Player } from '$lib/types/club.js';
 
 	const settingsStore = getContext<SettingsStore>('settings');
@@ -34,6 +37,10 @@
 	let softCheckout = $state(settingsStore.settings.defaultSoftCheckout);
 
 	let game = $state<GameStore | null>(null);
+	let cricketGame = $state<CricketGameStore | null>(null);
+	const isCricket = $derived(data.tournament.game_mode === 'cricket');
+	// Unified accessor for the active game (either standard or cricket)
+	const activeGame = $derived(isCricket ? cricketGame : game);
 	const animations = createAnimationStore();
 
 	// Input mode from settings
@@ -73,7 +80,7 @@
 	// Leg history tracking
 	let completedLegs = $state<LegRecord[]>([]);
 
-	function extractLegRecord(g: GameStore): LegRecord {
+	function extractLegRecord(g: GameStore | CricketGameStore): LegRecord {
 		const throws = g.throws;
 		const winnerId = g.winner_player_id!;
 		const winner = winnerId === g.home_player.id ? g.home_player : g.away_player;
@@ -162,13 +169,13 @@
 	});
 
 	$effect(() => {
-		if (game) {
+		if (game && !isCricket) {
 			game.setSoftCheckout(softCheckout);
 		}
 	});
 
 	const startingScore = $derived(
-		data.tournament.game_mode === '301' ? 301 : 501
+		data.tournament.game_mode === '301' ? 301 : data.tournament.game_mode === 'cricket' ? 0 : 501
 	);
 
 	function playerLabel(player: Player, stats: PlayerStats | null): string {
@@ -187,24 +194,34 @@
 		const awayPlayer = data.awayPlayers[awayPlayerIndex];
 		if (!homePlayer || !awayPlayer) return;
 
-		game = createGameState({
-			match_id: data.match.id,
-			leg_number: legNumber,
-			home_player: homePlayer,
-			away_player: awayPlayer,
-			starting_score: startingScore,
-			softCheckout
-		});
+		if (isCricket) {
+			cricketGame = createCricketGameState({
+				match_id: data.match.id,
+				leg_number: legNumber,
+				home_player: homePlayer,
+				away_player: awayPlayer
+			});
+		} else {
+			game = createGameState({
+				match_id: data.match.id,
+				leg_number: legNumber,
+				home_player: homePlayer,
+				away_player: awayPlayer,
+				starting_score: startingScore,
+				softCheckout
+			});
+		}
 		matchStarted = true;
 	}
 
 	function handleHit(event: { sector: SectorValue; multiplier: Multiplier; score: number }) {
-		if (!game || game.status === 'completed') return;
+		const g = activeGame;
+		if (!g || g.status === 'completed') return;
 		try {
-			game.registerThrow(event.sector, event.multiplier);
+			g.registerThrow(event.sector, event.multiplier);
 
-			if (game.lastSpecialHit && settingsStore.isAnimationEnabled(game.lastSpecialHit)) {
-				animations.trigger(game.lastSpecialHit);
+			if (g.lastSpecialHit && settingsStore.isAnimationEnabled(g.lastSpecialHit)) {
+				animations.trigger(g.lastSpecialHit);
 			}
 		} catch (err) {
 			console.error('Error registering throw:', err);
@@ -216,8 +233,9 @@
 	}
 
 	function handleUndo() {
-		if (!game) return;
-		game.undoLastThrow();
+		const g = activeGame;
+		if (!g) return;
+		g.undoLastThrow();
 	}
 
 	// Forfeit state
@@ -237,14 +255,14 @@
 
 	// The side that forfeits is the current player's side
 	const forfeitSide = $derived(
-		game && game.current_player_id === game.home_player.id ? 'home' : 'away'
+		activeGame && activeGame.current_player_id === activeGame.home_player.id ? 'home' : 'away'
 	);
 	const opponentClubName = $derived(
 		forfeitSide === 'home' ? data.match.away_club.name : data.match.home_club.name
 	);
 
 	async function handleForfeitLeg() {
-		if (!game || forfeitSaving) return;
+		if (!activeGame || forfeitSaving) return;
 		forfeitSaving = true;
 
 		try {
@@ -281,14 +299,23 @@
 
 			// Start next leg
 			legNumber++;
-			game = createGameState({
-				match_id: data.match.id,
-				leg_number: legNumber,
-				home_player: data.homePlayers[homePlayerIndex],
-				away_player: data.awayPlayers[awayPlayerIndex],
-				starting_score: startingScore,
-				softCheckout
-			});
+			if (isCricket) {
+				cricketGame = createCricketGameState({
+					match_id: data.match.id,
+					leg_number: legNumber,
+					home_player: data.homePlayers[homePlayerIndex],
+					away_player: data.awayPlayers[awayPlayerIndex]
+				});
+			} else {
+				game = createGameState({
+					match_id: data.match.id,
+					leg_number: legNumber,
+					home_player: data.homePlayers[homePlayerIndex],
+					away_player: data.awayPlayers[awayPlayerIndex],
+					starting_score: startingScore,
+					softCheckout
+				});
+			}
 		} catch (err) {
 			console.error('Error forfeiting leg:', err);
 		} finally {
@@ -297,7 +324,7 @@
 	}
 
 	async function handleConcedeMatch() {
-		if (!game || forfeitSaving) return;
+		if (!activeGame || forfeitSaving) return;
 		forfeitSaving = true;
 
 		try {
@@ -334,14 +361,15 @@
 	let legSaving = $state(false);
 
 	async function handleLegComplete() {
-		if (!game || game.status !== 'completed' || !game.winner_player_id) return;
+		const g = activeGame;
+		if (!g || g.status !== 'completed' || !g.winner_player_id) return;
 		if (legSaving) return;
 
 		legSaving = true;
-		const winnerSide = game.winner_player_id === game.home_player.id ? 'home' : 'away';
+		const winnerSide = g.winner_player_id === g.home_player.id ? 'home' : 'away';
 
 		// Capture leg record before resetting game state
-		const legRecord = extractLegRecord(game);
+		const legRecord = extractLegRecord(g);
 
 		try {
 			const formData = new FormData();
@@ -374,14 +402,23 @@
 
 			// Start next leg
 			legNumber++;
-			game = createGameState({
-				match_id: data.match.id,
-				leg_number: legNumber,
-				home_player: data.homePlayers[homePlayerIndex],
-				away_player: data.awayPlayers[awayPlayerIndex],
-				starting_score: startingScore,
-				softCheckout
-			});
+			if (isCricket) {
+				cricketGame = createCricketGameState({
+					match_id: data.match.id,
+					leg_number: legNumber,
+					home_player: data.homePlayers[homePlayerIndex],
+					away_player: data.awayPlayers[awayPlayerIndex]
+				});
+			} else {
+				game = createGameState({
+					match_id: data.match.id,
+					leg_number: legNumber,
+					home_player: data.homePlayers[homePlayerIndex],
+					away_player: data.awayPlayers[awayPlayerIndex],
+					starting_score: startingScore,
+					softCheckout
+				});
+			}
 		} catch (err) {
 			console.error('Error saving leg result:', err);
 		} finally {
@@ -510,31 +547,38 @@
 						{/if}
 					</div>
 				</div>
-				<div class="form-control mt-4">
-					<label class="label cursor-pointer justify-start gap-3">
-						<input type="checkbox" class="checkbox checkbox-primary" bind:checked={softCheckout} data-testid="soft-checkout-toggle" />
-						<div>
-							<span class="label-text font-medium">Einfaches Checkout</span>
-							<p class="text-xs text-base-content/60">Ueberwerfen erlaubt — kein exaktes Finish auf Doppel noetig</p>
-						</div>
-					</label>
-				</div>
+				{#if !isCricket}
+					<div class="form-control mt-4">
+						<label class="label cursor-pointer justify-start gap-3">
+							<input type="checkbox" class="checkbox checkbox-primary" bind:checked={softCheckout} data-testid="soft-checkout-toggle" />
+							<div>
+								<span class="label-text font-medium">Einfaches Checkout</span>
+								<p class="text-xs text-base-content/60">Ueberwerfen erlaubt — kein exaktes Finish auf Doppel noetig</p>
+							</div>
+						</label>
+					</div>
+				{/if}
 				<button class="btn btn-primary mt-2" onclick={startGame} data-testid="start-game-btn">
 					Spiel starten
 				</button>
 			</div>
 		</div>
-	{:else if game}
+	{:else if activeGame}
+		{@const g = activeGame}
 		<!-- Animation Overlay -->
 		<AnimationOverlay
 			{animations}
-			playerName={game.status === 'completed' ? `${game.currentPlayer.first_name} ${game.currentPlayer.last_name}` : ''}
+			playerName={g.status === 'completed' ? `${g.currentPlayer.first_name} ${g.currentPlayer.last_name}` : ''}
 		/>
 
 		<!-- Active Game -->
-		<ScoreBoard {game} />
+		{#if isCricket && cricketGame}
+			<CricketScoreBoard game={cricketGame} />
+		{:else if game}
+			<ScoreBoard {game} />
+		{/if}
 
-		<TurnIndicator {game} />
+		<TurnIndicator game={g} />
 
 		<!-- Leg History -->
 		<LegHistory legs={completedLegs} currentLegNumber={legNumber} />
@@ -592,15 +636,16 @@
 				{#if inputMode === 'dartboard' || inputMode === 'both'}
 					<Dartboard
 						size={inputMode === 'both' ? 280 : isMobile ? Math.min(350, 300) : 350}
-						disabled={game.status === 'completed'}
+						disabled={g.status === 'completed'}
 						quadrant={activeQuadrant}
+						highlightSegments={isCricket ? [...CRICKET_SEGMENTS] : []}
 						onhit={handleHit}
 					/>
 					<div class="flex items-center gap-2">
 						<button
 							class="btn btn-ghost btn-sm"
 							onclick={handleMiss}
-							disabled={game.status === 'completed'}
+							disabled={g.status === 'completed'}
 							data-testid="dartboard-miss-btn"
 						>Miss (0)</button>
 						<!-- Manual zoom toggle on non-mobile -->
@@ -624,7 +669,7 @@
 				{#if inputMode === 'keypad' || inputMode === 'both'}
 					<div class="w-full max-w-sm">
 						<ScoreKeypad
-							disabled={game.status === 'completed'}
+							disabled={g.status === 'completed'}
 							onhit={handleHit}
 						/>
 					</div>
@@ -634,12 +679,12 @@
 					<button
 						class="btn btn-outline btn-sm"
 						onclick={handleUndo}
-						disabled={game.throws.length === 0}
+						disabled={g.throws.length === 0}
 						data-testid="undo-btn"
 					>
 						Rueckgaengig
 					</button>
-					{#if game.status === 'completed'}
+					{#if g.status === 'completed'}
 						<button
 							class="btn btn-primary btn-sm"
 							onclick={handleLegComplete}
@@ -652,18 +697,20 @@
 							Leg bestaetigen
 						</button>
 					{/if}
-					<label class="label cursor-pointer gap-2 ml-auto">
-						<span class="label-text text-xs">Einfaches Checkout</span>
-						<input type="checkbox" class="toggle toggle-primary toggle-sm" bind:checked={softCheckout} data-testid="soft-checkout-toggle" />
-					</label>
+					{#if !isCricket}
+						<label class="label cursor-pointer gap-2 ml-auto">
+							<span class="label-text text-xs">Einfaches Checkout</span>
+							<input type="checkbox" class="toggle toggle-primary toggle-sm" bind:checked={softCheckout} data-testid="soft-checkout-toggle" />
+						</label>
+					{/if}
 				</div>
 			</div>
 
 			<div class="flex flex-col gap-4">
-				{#if settingsStore.settings.showCheckoutHelper}
-					<CheckoutHelper remaining={game.currentRemaining} checkoutRoutes={game.checkoutRoutes} />
+				{#if !isCricket && settingsStore.settings.showCheckoutHelper}
+					<CheckoutHelper remaining={g.currentRemaining} checkoutRoutes={g.checkoutRoutes} />
 				{/if}
-				<ThrowHistory throws={game.throws} currentTurnThrows={game.currentTurnThrows} />
+				<ThrowHistory throws={g.throws} currentTurnThrows={g.currentTurnThrows} />
 			</div>
 		</div>
 	{/if}

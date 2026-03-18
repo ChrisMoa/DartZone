@@ -27,10 +27,13 @@
 		disabled?: boolean;
 		markers?: HitMarker[];
 		quadrant?: Quadrant;
+		highlightSegments?: number[];
 		onhit?: (event: HitEvent) => void;
 	}
 
-	let { size = 400, disabled = false, markers = [], quadrant = 'full', onhit }: Props = $props();
+	let { size = 400, disabled = false, markers = [], quadrant = 'full', highlightSegments = [], onhit }: Props = $props();
+
+	const dimmedSegments = $derived(highlightSegments.length > 0);
 
 	const boardRadius = $derived(size / 2);
 
@@ -155,6 +158,7 @@
 			multiplier={sector.multiplier}
 			fill={sector.fill}
 			{disabled}
+			dimmed={dimmedSegments && !highlightSegments.includes(sector.sector)}
 			onhit={handleHit}
 		/>
 	{/each}
