@@ -20,7 +20,8 @@
 </svelte:head>
 
 <div class="min-h-screen bg-base-200">
-	<nav class="navbar bg-gradient-to-r from-base-100 to-base-200 shadow-sm sticky top-0 z-40 border-b border-base-300/50">
+	<a href="#main-content" class="skip-link">Zum Inhalt springen</a>
+	<nav class="navbar bg-gradient-to-r from-base-100 to-base-200 shadow-sm sticky top-0 z-40 border-b border-base-300/50" aria-label="Hauptnavigation">
 		<div class="flex-1">
 			<a href="/" class="btn btn-ghost text-xl font-bold text-primary" title="DartZone v{__APP_VERSION__} (Build: {__APP_BUILD_DATE__})">DartZone</a>
 		</div>
@@ -63,7 +64,7 @@
 		</div>
 	</nav>
 
-	<main class="container mx-auto p-4 max-w-6xl">
+	<main id="main-content" class="container mx-auto p-4 max-w-6xl">
 		{@render children()}
 	</main>
 </div>

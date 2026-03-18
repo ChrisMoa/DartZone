@@ -165,7 +165,7 @@
 	</div>
 
 	{#if error}
-		<div class="text-xs text-error" data-testid="keypad-error">{error}</div>
+		<div class="text-xs text-error" data-testid="keypad-error" role="alert">{error}</div>
 	{/if}
 
 	<!-- Number grid -->

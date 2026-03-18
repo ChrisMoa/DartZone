@@ -599,6 +599,7 @@
 						class="btn btn-ghost btn-xs"
 						onclick={cycleInputMode}
 						title="Eingabemodus wechseln"
+						aria-label="Eingabemodus wechseln"
 						data-testid="input-mode-toggle"
 					>
 						{#if inputMode === 'dartboard'}
@@ -662,6 +663,7 @@
 								class="btn btn-ghost btn-xs opacity-50 hover:opacity-100"
 								onclick={() => (activeQuadrant = activeQuadrant === 'full' ? 'top-right' : 'full')}
 								title="Zoom-Modus umschalten"
+								aria-label="Zoom-Modus umschalten"
 								data-testid="zoom-toggle"
 							>
 								<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
