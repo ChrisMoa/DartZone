@@ -2,6 +2,74 @@ import type { PageServerLoad, Actions } from './$types.js';
 import { error, fail } from '@sveltejs/kit';
 import { matchRepo, playerRepo, tournamentRepo, standingsService } from '$lib/server/db.js';
 
+const ROUND_SEQUENCE = ['Runde 1', 'Achtelfinale', 'Viertelfinale', 'Halbfinale', 'Finale'];
+
+function getNextRoundName(currentRound: string): string | null {
+	const idx = ROUND_SEQUENCE.indexOf(currentRound);
+	if (idx < 0 || idx >= ROUND_SEQUENCE.length - 1) return null;
+	return ROUND_SEQUENCE[idx + 1];
+}
+
+/**
+ * After a knockout match completes, check if all matches in the same round are done.
+ * If so, generate next-round matches by pairing consecutive winners.
+ */
+async function advanceKnockoutRound(tournamentId: string, completedMatchRound: string | null) {
+	if (!completedMatchRound) return;
+
+	const tournament = await tournamentRepo.getById(tournamentId);
+	if (!tournament || tournament.format !== 'knockout') return;
+
+	// Already at the finale — nothing to advance
+	if (completedMatchRound === 'Finale') return;
+
+	const allMatches = await matchRepo.getByTournamentId(tournamentId);
+	const roundMatches = allMatches.filter((m) => m.round === completedMatchRound);
+
+	// Check if ALL matches in this round are completed
+	if (roundMatches.some((m) => m.status !== 'completed')) return;
+
+	// Check if next-round matches already exist
+	const nextRoundName = getNextRoundName(completedMatchRound);
+	if (!nextRoundName) return;
+
+	const existingNextRound = allMatches.filter((m) => m.round === nextRoundName);
+	if (existingNextRound.length > 0) return;
+
+	// Collect winners in order
+	const winners = roundMatches.map((m) => {
+		return m.home_legs_won > m.away_legs_won ? m.home_club : m.away_club;
+	});
+
+	if (winners.length < 2) return;
+
+	// Determine correct round name based on remaining teams
+	const actualRoundName = winners.length <= 2
+		? 'Finale'
+		: winners.length <= 4
+			? 'Halbfinale'
+			: winners.length <= 8
+				? 'Viertelfinale'
+				: winners.length <= 16
+					? 'Achtelfinale'
+					: 'Runde 1';
+
+	// Pair consecutive winners
+	for (let i = 0; i < winners.length - 1; i += 2) {
+		await matchRepo.create({
+			tournament_id: tournamentId,
+			home_club: winners[i],
+			away_club: winners[i + 1],
+			round: actualRoundName,
+			scheduled_at: null,
+			status: 'scheduled',
+			home_legs_won: 0,
+			away_legs_won: 0,
+			completed_at: null
+		});
+	}
+}
+
 export const load: PageServerLoad = async ({ params }) => {
 	const match = await matchRepo.getById(params.matchId);
 	if (!match) throw error(404, 'Spiel nicht gefunden');
@@ -56,6 +124,8 @@ export const actions: Actions = {
 
 		if (update.status === 'completed') {
 			await standingsService.recalculate(params.id);
+			const updatedMatch = await matchRepo.getById(params.matchId);
+			await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
 		}
 
 		return { success: true, matchCompleted: update.status === 'completed' };
@@ -95,6 +165,8 @@ export const actions: Actions = {
 
 		if (update.status === 'completed') {
 			await standingsService.recalculate(params.id);
+			const updatedMatch = await matchRepo.getById(params.matchId);
+			await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
 		}
 
 		return { success: true, matchCompleted: update.status === 'completed', winnerSide };
@@ -122,6 +194,8 @@ export const actions: Actions = {
 
 		await matchRepo.update(params.matchId, update);
 		await standingsService.recalculate(params.id);
+		const updatedMatch = await matchRepo.getById(params.matchId);
+		await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
 
 		return { success: true, matchCompleted: true };
 	}
