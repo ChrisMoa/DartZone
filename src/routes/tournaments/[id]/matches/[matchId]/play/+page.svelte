@@ -622,7 +622,7 @@
 
 				<!-- Keypad (shown in keypad or both mode) -->
 				{#if inputMode === 'keypad' || inputMode === 'both'}
-					<div class="w-full max-w-xs">
+					<div class="w-full max-w-sm">
 						<ScoreKeypad
 							disabled={game.status === 'completed'}
 							onhit={handleHit}
