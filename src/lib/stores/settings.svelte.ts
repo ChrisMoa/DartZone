@@ -33,7 +33,7 @@ const DEFAULTS: AppSettings = {
 	defaultLegsPerMatch: 5,
 	timerEnabled: true,
 
-	inputMode: 'dartboard',
+	inputMode: 'keypad',
 	showCheckoutHelper: true,
 };
 

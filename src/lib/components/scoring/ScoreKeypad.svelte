@@ -13,10 +13,11 @@
 	let error = $state<string | null>(null);
 	let textInput = $state('');
 
-	const SECTOR_NUMBERS: number[] = [
-		20, 19, 18, 17, 16, 15,
-		14, 13, 12, 11, 10, 9,
-		8, 7, 6, 5, 4, 3, 2, 1
+	const SECTOR_ROWS: number[][] = [
+		[20, 19, 18, 17, 16],
+		[15, 14, 13, 12, 11],
+		[10, 9, 8, 7, 6],
+		[5, 4, 3, 2, 1]
 	];
 
 	function emitHit(sector: SectorValue, multiplier: Multiplier) {
@@ -39,12 +40,11 @@
 	}
 
 	function handleBullClick() {
-		if (activeMultiplier === 3) {
-			error = 'Triple Bull gibt es nicht';
-			return;
-		}
-		const mult = activeMultiplier === 1 ? 1 : 2;
-		emitHit(25, mult as Multiplier);
+		emitHit(25, 1);
+	}
+
+	function handleBullseyeClick() {
+		emitHit(25, 2);
 	}
 
 	function handleMissClick() {
@@ -100,7 +100,7 @@
 		if (disabled) return;
 		const parsed = parseNotation(textInput);
 		if (!parsed) {
-			error = `Ungültige Eingabe: "${textInput}"`;
+			error = `Ungueltige Eingabe: "${textInput}"`;
 			return;
 		}
 
@@ -120,13 +120,109 @@
 		}
 	}
 
-	const multiplierLabel = $derived(
-		activeMultiplier === 3 ? 'Triple' : activeMultiplier === 2 ? 'Double' : 'Single'
-	);
+	function multiplierBtnClass(m: Multiplier): string {
+		if (activeMultiplier !== m) return 'btn-outline';
+		if (m === 1) return 'btn-primary';
+		if (m === 2) return 'btn-secondary';
+		return 'btn-accent';
+	}
+
+	function numberBtnClass(): string {
+		if (activeMultiplier === 3) return 'btn-accent btn-outline';
+		if (activeMultiplier === 2) return 'btn-secondary btn-outline';
+		return 'btn-ghost border-base-300';
+	}
+
+	function numberLabel(num: number): string {
+		if (activeMultiplier === 3) return `T${num}`;
+		if (activeMultiplier === 2) return `D${num}`;
+		return `${num}`;
+	}
+
+	function scoreLabel(num: number): number {
+		return num * activeMultiplier;
+	}
 </script>
 
-<div class="flex flex-col gap-3" data-testid="score-keypad">
-	<!-- Text input -->
+<div class="flex flex-col gap-2" data-testid="score-keypad">
+	<!-- Multiplier selector -->
+	<div class="grid grid-cols-3 gap-1" data-testid="keypad-multiplier">
+		<button
+			class="btn btn-sm {multiplierBtnClass(1)}"
+			onclick={() => setMultiplier(1)}
+			{disabled}
+		>Single</button>
+		<button
+			class="btn btn-sm {multiplierBtnClass(2)}"
+			onclick={() => setMultiplier(2)}
+			{disabled}
+		>Double</button>
+		<button
+			class="btn btn-sm {multiplierBtnClass(3)}"
+			onclick={() => setMultiplier(3)}
+			{disabled}
+		>Triple</button>
+	</div>
+
+	{#if error}
+		<div class="text-xs text-error" data-testid="keypad-error">{error}</div>
+	{/if}
+
+	<!-- Number grid -->
+	<div class="flex flex-col gap-1" data-testid="keypad-numbers">
+		{#each SECTOR_ROWS as row}
+			<div class="grid grid-cols-5 gap-1">
+				{#each row as num}
+					<button
+						class="btn tabular-nums min-h-[2.75rem] {numberBtnClass()}"
+						onclick={() => handleNumberClick(num)}
+						{disabled}
+					>
+						<span class="flex flex-col items-center leading-tight">
+							<span class="text-sm font-semibold">{numberLabel(num)}</span>
+							{#if activeMultiplier > 1}
+								<span class="text-[0.6rem] opacity-50">{scoreLabel(num)}</span>
+							{/if}
+						</span>
+					</button>
+				{/each}
+			</div>
+		{/each}
+	</div>
+
+	<!-- Bull, Bullseye, Miss row -->
+	<div class="grid grid-cols-3 gap-1">
+		<button
+			class="btn btn-sm btn-outline btn-warning min-h-[2.75rem]"
+			onclick={handleBullClick}
+			{disabled}
+			data-testid="keypad-bull"
+		>
+			<span class="flex flex-col items-center leading-tight">
+				<span class="text-sm font-semibold">Bull</span>
+				<span class="text-[0.6rem] opacity-60">25</span>
+			</span>
+		</button>
+		<button
+			class="btn btn-sm btn-warning min-h-[2.75rem]"
+			onclick={handleBullseyeClick}
+			{disabled}
+			data-testid="keypad-bullseye"
+		>
+			<span class="flex flex-col items-center leading-tight">
+				<span class="text-sm font-semibold">Bullseye</span>
+				<span class="text-[0.6rem] opacity-60">50</span>
+			</span>
+		</button>
+		<button
+			class="btn btn-sm btn-ghost min-h-[2.75rem]"
+			onclick={handleMissClick}
+			{disabled}
+			data-testid="keypad-miss"
+		>Miss (0)</button>
+	</div>
+
+	<!-- Text input (compact, for advanced users) -->
 	<div class="flex gap-2">
 		<input
 			type="text"
@@ -143,63 +239,5 @@
 			{disabled}
 			data-testid="keypad-submit-btn"
 		>OK</button>
-	</div>
-
-	{#if error}
-		<div class="text-xs text-error" data-testid="keypad-error">{error}</div>
-	{/if}
-
-	<!-- Multiplier selector -->
-	<div class="flex gap-1" data-testid="keypad-multiplier">
-		<button
-			class="btn btn-sm flex-1 {activeMultiplier === 1 ? 'btn-primary' : 'btn-outline'}"
-			onclick={() => setMultiplier(1)}
-			{disabled}
-		>Single</button>
-		<button
-			class="btn btn-sm flex-1 {activeMultiplier === 2 ? 'btn-secondary' : 'btn-outline'}"
-			onclick={() => setMultiplier(2)}
-			{disabled}
-		>Double</button>
-		<button
-			class="btn btn-sm flex-1 {activeMultiplier === 3 ? 'btn-accent' : 'btn-outline'}"
-			onclick={() => setMultiplier(3)}
-			{disabled}
-		>Triple</button>
-	</div>
-
-	<!-- Number grid -->
-	<div class="grid grid-cols-5 gap-1" data-testid="keypad-numbers">
-		{#each SECTOR_NUMBERS as num}
-			<button
-				class="btn btn-sm tabular-nums {activeMultiplier === 3 ? 'btn-accent btn-outline' : activeMultiplier === 2 ? 'btn-secondary btn-outline' : 'btn-ghost'}"
-				onclick={() => handleNumberClick(num)}
-				{disabled}
-			>
-				{activeMultiplier === 3 ? 'T' : activeMultiplier === 2 ? 'D' : ''}{num}
-			</button>
-		{/each}
-	</div>
-
-	<!-- Bull and Miss row -->
-	<div class="flex gap-1">
-		<button
-			class="btn btn-sm flex-1 {activeMultiplier === 2 ? 'btn-warning' : 'btn-outline btn-warning'}"
-			onclick={handleBullClick}
-			{disabled}
-			data-testid="keypad-bull"
-		>
-			{activeMultiplier === 2 ? 'Bullseye (50)' : 'Bull (25)'}
-		</button>
-		<button
-			class="btn btn-sm flex-1 btn-ghost"
-			onclick={handleMissClick}
-			{disabled}
-			data-testid="keypad-miss"
-		>Miss (0)</button>
-	</div>
-
-	<div class="text-xs text-base-content/40 text-center">
-		Modus: {multiplierLabel} — oder Kurzform eingeben (T20, D16, Bull)
 	</div>
 </div>
