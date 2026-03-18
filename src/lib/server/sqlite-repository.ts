@@ -2,6 +2,7 @@ import type Database from 'better-sqlite3';
 import type { Club } from '$lib/types/club.js';
 import type { Player } from '$lib/types/club.js';
 import type { Tournament, Match, Standing } from '$lib/types/league.js';
+import type { DartThrow } from '$lib/types/game.js';
 import type {
 	ClubRepository,
 	PlayerRepository,
@@ -9,7 +10,8 @@ import type {
 	MatchRepository,
 	StandingsService,
 	AnimationAsset,
-	AnimationAssetRepository
+	AnimationAssetRepository,
+	ThrowRepository
 } from './repository.js';
 
 function generateId(): string {
@@ -622,5 +624,93 @@ export class SqliteAnimationAssetRepository implements AnimationAssetRepository 
 	async delete(event: string): Promise<boolean> {
 		const result = this.db.prepare('DELETE FROM animation_assets WHERE event = ?').run(event);
 		return result.changes > 0;
+	}
+}
+
+// --- Throw Repository ---
+
+interface DartThrowRow {
+	id: string;
+	match_id: string;
+	leg_number: number;
+	player_id: string;
+	turn_number: number;
+	dart_number: number;
+	sector: number;
+	multiplier: number;
+	score: number;
+	remaining_score: number;
+	is_bust: number;
+	thrown_at: string;
+}
+
+export class SqliteThrowRepository implements ThrowRepository {
+	constructor(private db: Database.Database) {}
+
+	private rowToThrow(row: DartThrowRow): DartThrow {
+		return {
+			id: row.id,
+			game_id: row.match_id,
+			player_id: row.player_id,
+			turn_number: row.turn_number,
+			dart_number: row.dart_number as 1 | 2 | 3,
+			sector: row.sector,
+			multiplier: row.multiplier,
+			score: row.score,
+			remaining_score: row.remaining_score,
+			is_bust: row.is_bust === 1,
+			thrown_at: row.thrown_at
+		} as DartThrow;
+	}
+
+	async saveBatch(throws: DartThrow[]): Promise<void> {
+		if (throws.length === 0) return;
+
+		const insert = this.db.prepare(
+			`INSERT OR IGNORE INTO dart_throws (id, match_id, leg_number, player_id, turn_number, dart_number, sector, multiplier, score, remaining_score, is_bust, thrown_at)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+		);
+
+		const insertAll = this.db.transaction((items: DartThrow[]) => {
+			for (const t of items) {
+				insert.run(
+					t.id ?? generateId(),
+					t.game_id,
+					(t as DartThrow & { leg_number?: number }).leg_number ?? 1,
+					t.player_id,
+					t.turn_number,
+					t.dart_number,
+					t.sector,
+					t.multiplier,
+					t.score,
+					t.remaining_score,
+					t.is_bust ? 1 : 0,
+					t.thrown_at ?? now()
+				);
+			}
+		});
+
+		insertAll(throws);
+	}
+
+	async getByMatch(matchId: string): Promise<DartThrow[]> {
+		const rows = this.db
+			.prepare('SELECT * FROM dart_throws WHERE match_id = ? ORDER BY leg_number, turn_number, dart_number')
+			.all(matchId) as DartThrowRow[];
+		return rows.map((r) => this.rowToThrow(r));
+	}
+
+	async getByPlayer(playerId: string): Promise<DartThrow[]> {
+		const rows = this.db
+			.prepare('SELECT * FROM dart_throws WHERE player_id = ? ORDER BY thrown_at, turn_number, dart_number')
+			.all(playerId) as DartThrowRow[];
+		return rows.map((r) => this.rowToThrow(r));
+	}
+
+	async getByMatchAndLeg(matchId: string, legNumber: number): Promise<DartThrow[]> {
+		const rows = this.db
+			.prepare('SELECT * FROM dart_throws WHERE match_id = ? AND leg_number = ? ORDER BY turn_number, dart_number')
+			.all(matchId, legNumber) as DartThrowRow[];
+		return rows.map((r) => this.rowToThrow(r));
 	}
 }

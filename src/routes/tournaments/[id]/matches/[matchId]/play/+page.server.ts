@@ -1,6 +1,6 @@
 import type { PageServerLoad, Actions } from './$types.js';
 import { error, fail } from '@sveltejs/kit';
-import { matchRepo, playerRepo, tournamentRepo, standingsService } from '$lib/server/db.js';
+import { matchRepo, playerRepo, tournamentRepo, standingsService, throwRepo } from '$lib/server/db.js';
 
 const ROUND_SEQUENCE = ['Runde 1', 'Achtelfinale', 'Viertelfinale', 'Halbfinale', 'Finale'];
 
@@ -95,6 +95,20 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const winnerSide = formData.get('winner_side') as 'home' | 'away';
 		if (!winnerSide) return fail(400, { error: 'Winner side required' });
+
+		// Persist dart throws if provided
+		const throwsJson = formData.get('throws') as string | null;
+		if (throwsJson) {
+			try {
+				const throws = JSON.parse(throwsJson);
+				if (Array.isArray(throws) && throws.length > 0) {
+					await throwRepo.saveBatch(throws);
+				}
+			} catch {
+				// Non-critical: log but don't fail the leg completion
+				console.error('Failed to parse/save throws data');
+			}
+		}
 
 		const match = await matchRepo.getById(params.matchId);
 		if (!match) return fail(404, { error: 'Match not found' });

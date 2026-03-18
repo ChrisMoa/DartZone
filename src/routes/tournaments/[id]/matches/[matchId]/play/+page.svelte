@@ -375,6 +375,14 @@
 			const formData = new FormData();
 			formData.set('winner_side', winnerSide);
 
+			// Serialize throws for persistence (map game_id → match_id)
+			const throwsData = g.throws.map((t: DartThrow) => ({
+				...t,
+				game_id: data.match.id,
+				leg_number: legNumber
+			}));
+			formData.set('throws', JSON.stringify(throwsData));
+
 			const response = await fetch('?/completeLeg', {
 				method: 'POST',
 				body: formData,
