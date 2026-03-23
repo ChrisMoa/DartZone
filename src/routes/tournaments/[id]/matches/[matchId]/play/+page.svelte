@@ -189,29 +189,62 @@
 		return label;
 	}
 
-	function startGame() {
+	let startError = $state<string | null>(null);
+	let starting = $state(false);
+
+	async function startGame() {
 		const homePlayer = data.homePlayers[homePlayerIndex];
 		const awayPlayer = data.awayPlayers[awayPlayerIndex];
 		if (!homePlayer || !awayPlayer) return;
+		if (starting) return;
 
-		if (isCricket) {
-			cricketGame = createCricketGameState({
-				match_id: data.match.id,
-				leg_number: legNumber,
-				home_player: homePlayer,
-				away_player: awayPlayer
+		starting = true;
+		startError = null;
+
+		try {
+			// Mark match as in_progress on server to prevent double-starts
+			const response = await fetch('?/startGame', {
+				method: 'POST',
+				body: new FormData(),
+				headers: { 'x-sveltekit-action': 'true' }
 			});
-		} else {
-			game = createGameState({
-				match_id: data.match.id,
-				leg_number: legNumber,
-				home_player: homePlayer,
-				away_player: awayPlayer,
-				starting_score: startingScore,
-				softCheckout
-			});
+
+			if (!response.ok) {
+				const result = await response.json();
+				startError = result?.data?.error ?? 'Spiel konnte nicht gestartet werden';
+				return;
+			}
+
+			const result = await response.json();
+			if (result?.type === 'failure') {
+				startError = result?.data?.error ?? 'Spiel wird bereits gespielt';
+				return;
+			}
+
+			if (isCricket) {
+				cricketGame = createCricketGameState({
+					match_id: data.match.id,
+					leg_number: legNumber,
+					home_player: homePlayer,
+					away_player: awayPlayer
+				});
+			} else {
+				game = createGameState({
+					match_id: data.match.id,
+					leg_number: legNumber,
+					home_player: homePlayer,
+					away_player: awayPlayer,
+					starting_score: startingScore,
+					softCheckout
+				});
+			}
+			matchStarted = true;
+		} catch (err) {
+			console.error('Error starting game:', err);
+			startError = 'Netzwerkfehler beim Starten';
+		} finally {
+			starting = false;
 		}
-		matchStarted = true;
 	}
 
 	function handleHit(event: { sector: SectorValue; multiplier: Multiplier; score: number }) {
@@ -566,7 +599,15 @@
 						</label>
 					</div>
 				{/if}
-				<button class="btn btn-primary mt-2" onclick={startGame} data-testid="start-game-btn">
+				{#if startError}
+					<div class="alert alert-error text-sm" data-testid="start-error">
+						{startError}
+					</div>
+				{/if}
+				<button class="btn btn-primary mt-2" onclick={startGame} disabled={starting} data-testid="start-game-btn">
+					{#if starting}
+						<span class="loading loading-spinner loading-xs"></span>
+					{/if}
 					Spiel starten
 				</button>
 			</div>

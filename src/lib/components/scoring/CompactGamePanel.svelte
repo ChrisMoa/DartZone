@@ -19,6 +19,8 @@
 		matchStarted: boolean;
 		matchCompleted: boolean;
 		isCricket: boolean;
+		starting?: boolean;
+		error?: string | null;
 		onselect: () => void;
 		onstart: (homePlayerIndex: number, awayPlayerIndex: number) => void;
 	}
@@ -36,6 +38,8 @@
 		matchStarted,
 		matchCompleted,
 		isCricket,
+		starting = false,
+		error = null,
 		onselect,
 		onstart
 	}: Props = $props();
@@ -119,6 +123,11 @@
 			<div class="text-center text-sm font-medium text-success">
 				{homeLegsWon > awayLegsWon ? match.home_club.name : match.away_club.name} gewinnt!
 			</div>
+		{:else if matchStarted && !game}
+			<!-- Started on another connection -->
+			<div class="text-center text-xs text-warning py-2">
+				Wird bereits auf einem anderen Geraet gespielt
+			</div>
 		{:else if !matchStarted}
 			<!-- Player selection (compact) -->
 			<div class="flex flex-col gap-1">
@@ -132,11 +141,18 @@
 						<option value={i}>{player.first_name} {player.last_name}</option>
 					{/each}
 				</select>
+				{#if error}
+					<div class="text-xs text-error">{error}</div>
+				{/if}
 				<button
 					class="btn btn-primary btn-xs mt-1"
 					onclick={(e) => { e.stopPropagation(); handleStart(); }}
+					disabled={starting}
 					data-testid="panel-start-{panelIndex}"
 				>
+					{#if starting}
+						<span class="loading loading-spinner loading-xs"></span>
+					{/if}
 					Starten
 				</button>
 			</div>
