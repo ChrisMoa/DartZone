@@ -107,7 +107,19 @@
 	<div class="card bg-base-100 shadow-sm">
 		<div class="card-body">
 			<div class="flex items-center justify-between">
-				<h2 class="card-title">Spiele</h2>
+				<div class="flex items-center gap-2">
+					<h2 class="card-title">Spiele</h2>
+					{#if data.matches.filter((m) => m.status !== 'completed').length >= 2}
+						<a
+							href="/tournaments/{data.tournament.id}/multi-play"
+							class="btn btn-sm btn-secondary btn-outline"
+							data-testid="multi-play-btn"
+							title="Bis zu 4 Spiele gleichzeitig spielen"
+						>
+							Multi-Spiel
+						</a>
+					{/if}
+				</div>
 				{#if data.assignedClubIds.length >= 2}
 					<form method="POST" action="?/generatePairings">
 						{#if data.matches.length === 0}
