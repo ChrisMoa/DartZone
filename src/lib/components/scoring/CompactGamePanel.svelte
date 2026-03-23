@@ -20,9 +20,11 @@
 		matchCompleted: boolean;
 		isCricket: boolean;
 		starting?: boolean;
+		resetting?: boolean;
 		error?: string | null;
 		onselect: () => void;
 		onstart: (homePlayerIndex: number, awayPlayerIndex: number) => void;
+		onreset?: () => void;
 	}
 
 	let {
@@ -39,9 +41,11 @@
 		matchCompleted,
 		isCricket,
 		starting = false,
+		resetting = false,
 		error = null,
 		onselect,
-		onstart
+		onstart,
+		onreset
 	}: Props = $props();
 
 	let homePlayerIndex = $state(0);
@@ -124,9 +128,42 @@
 				{homeLegsWon > awayLegsWon ? match.home_club.name : match.away_club.name} gewinnt!
 			</div>
 		{:else if matchStarted && !game}
-			<!-- Started on another connection -->
-			<div class="text-center text-xs text-warning py-2">
-				Wird bereits auf einem anderen Geraet gespielt
+			<!-- Started on another connection — offer resume/reset -->
+			<div class="flex flex-col gap-1 items-center py-1">
+				<span class="text-[0.65rem] text-warning">Unterbrochen (Leg {legNumber}, {homeLegsWon}:{awayLegsWon})</span>
+				<select class="select select-bordered select-xs w-full" bind:value={homePlayerIndex}>
+					{#each homePlayers as player, i (player.id)}
+						<option value={i}>{player.first_name} {player.last_name}</option>
+					{/each}
+				</select>
+				<select class="select select-bordered select-xs w-full" bind:value={awayPlayerIndex}>
+					{#each awayPlayers as player, i (player.id)}
+						<option value={i}>{player.first_name} {player.last_name}</option>
+					{/each}
+				</select>
+				{#if error}
+					<div class="text-xs text-error">{error}</div>
+				{/if}
+				<div class="flex gap-1 w-full">
+					<button
+						class="btn btn-primary btn-xs flex-1"
+						onclick={(e) => { e.stopPropagation(); handleStart(); }}
+						disabled={starting}
+					>
+						{#if starting}<span class="loading loading-spinner loading-xs"></span>{/if}
+						Fortsetzen
+					</button>
+					{#if onreset}
+						<button
+							class="btn btn-outline btn-error btn-xs"
+							onclick={(e) => { e.stopPropagation(); onreset?.(); }}
+							disabled={resetting}
+						>
+							{#if resetting}<span class="loading loading-spinner loading-xs"></span>{/if}
+							Reset
+						</button>
+					{/if}
+				</div>
 			</div>
 		{:else if !matchStarted}
 			<!-- Player selection (compact) -->

@@ -105,7 +105,6 @@
 		startError = null;
 
 		try {
-			// Mark match as in_progress on server
 			const formData = new FormData();
 			formData.set('match_id', mwp.match.id);
 
@@ -124,6 +123,13 @@
 			const slot = slots[slotIndex];
 			slot.homePlayerIndex = homePlayerIdx;
 			slot.awayPlayerIndex = awayPlayerIdx;
+
+			// Use server-returned leg counts (handles resume)
+			if (result?.data?.home_legs_won != null) {
+				slot.homeLegsWon = result.data.home_legs_won;
+				slot.awayLegsWon = result.data.away_legs_won;
+				slot.legNumber = slot.homeLegsWon + slot.awayLegsWon + 1;
+			}
 
 			if (isCricket) {
 				slot.game = createCricketGameState({
@@ -148,6 +154,47 @@
 			startError = 'Netzwerkfehler beim Starten';
 		} finally {
 			startingSlot = null;
+		}
+	}
+
+	let resettingSlot = $state<number | null>(null);
+
+	async function resetMatchSlot(slotIndex: number) {
+		const mwp = data.matchesWithPlayers[slotIndex];
+		if (resettingSlot !== null) return;
+
+		resettingSlot = slotIndex;
+		startError = null;
+
+		try {
+			const formData = new FormData();
+			formData.set('match_id', mwp.match.id);
+
+			const response = await fetch('?/resetMatch', {
+				method: 'POST',
+				body: formData,
+				headers: { 'x-sveltekit-action': 'true' }
+			});
+
+			const result = await response.json();
+			if (result?.type === 'failure') {
+				startError = result?.data?.error ?? 'Zuruecksetzen fehlgeschlagen';
+				return;
+			}
+
+			const slot = slots[slotIndex];
+			slot.game = null;
+			slot.matchStarted = false;
+			slot.matchCompleted = false;
+			slot.homeLegsWon = 0;
+			slot.awayLegsWon = 0;
+			slot.legNumber = 1;
+			slot.completedLegs = [];
+		} catch (err) {
+			console.error('Error resetting match:', err);
+			startError = 'Netzwerkfehler beim Zuruecksetzen';
+		} finally {
+			resettingSlot = null;
 		}
 	}
 
@@ -367,9 +414,11 @@
 					matchCompleted={slots[i].matchCompleted}
 					isCricket={isCricket}
 					starting={startingSlot === i}
-					error={startingSlot === i || activeSlotIndex === i ? startError : null}
+					resetting={resettingSlot === i}
+					error={startingSlot === i || resettingSlot === i || activeSlotIndex === i ? startError : null}
 					onselect={() => selectSlot(i)}
 					onstart={(hpi, api) => startGame(i, hpi, api)}
+					onreset={() => resetMatchSlot(i)}
 				/>
 			{/each}
 		</div>

@@ -96,14 +96,40 @@ export const actions: Actions = {
 		const match = await matchRepo.getById(matchId);
 		if (!match) return fail(404, { error: 'Match not found' });
 
-		if (match.status === 'in_progress') {
-			return fail(409, { error: 'Spiel wird bereits gespielt' });
-		}
 		if (match.status === 'completed') {
 			return fail(409, { error: 'Spiel ist bereits beendet' });
 		}
 
-		await matchRepo.update(matchId, { status: 'in_progress' });
+		if (match.status === 'scheduled') {
+			await matchRepo.update(matchId, { status: 'in_progress' });
+		}
+
+		return {
+			success: true,
+			matchId,
+			home_legs_won: match.home_legs_won,
+			away_legs_won: match.away_legs_won
+		};
+	},
+
+	resetMatch: async ({ request }) => {
+		const formData = await request.formData();
+		const matchId = formData.get('match_id') as string;
+		if (!matchId) return fail(400, { error: 'Match ID required' });
+
+		const match = await matchRepo.getById(matchId);
+		if (!match) return fail(404, { error: 'Match not found' });
+
+		if (match.status === 'completed') {
+			return fail(409, { error: 'Beendete Spiele koennen nicht zurueckgesetzt werden' });
+		}
+
+		await matchRepo.update(matchId, {
+			status: 'scheduled',
+			home_legs_won: 0,
+			away_legs_won: 0
+		});
+
 		return { success: true, matchId };
 	},
 
