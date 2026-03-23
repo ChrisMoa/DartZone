@@ -95,14 +95,36 @@ export const actions: Actions = {
 		const match = await matchRepo.getById(params.matchId);
 		if (!match) return fail(404, { error: 'Match not found' });
 
-		if (match.status === 'in_progress') {
-			return fail(409, { error: 'Match is already in progress' });
-		}
 		if (match.status === 'completed') {
 			return fail(409, { error: 'Match is already completed' });
 		}
 
-		await matchRepo.update(params.matchId, { status: 'in_progress' });
+		// Allow starting both scheduled and in_progress (resume) matches
+		if (match.status === 'scheduled') {
+			await matchRepo.update(params.matchId, { status: 'in_progress' });
+		}
+
+		return {
+			success: true,
+			home_legs_won: match.home_legs_won,
+			away_legs_won: match.away_legs_won
+		};
+	},
+
+	resetMatch: async ({ params }) => {
+		const match = await matchRepo.getById(params.matchId);
+		if (!match) return fail(404, { error: 'Match not found' });
+
+		if (match.status === 'completed') {
+			return fail(409, { error: 'Beendete Spiele koennen nicht zurueckgesetzt werden' });
+		}
+
+		await matchRepo.update(params.matchId, {
+			status: 'scheduled',
+			home_legs_won: 0,
+			away_legs_won: 0
+		});
+
 		return { success: true };
 	},
 

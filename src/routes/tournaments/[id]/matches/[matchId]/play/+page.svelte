@@ -29,11 +29,14 @@
 
 	let homePlayerIndex = $state(0);
 	let awayPlayerIndex = $state(0);
-	let legNumber = $state(1);
-	let matchStarted = $state(data.match.status !== 'scheduled');
+	let legNumber = $state(data.match.home_legs_won + data.match.away_legs_won + 1);
+	// Only treat as "started" if we have a local game — in_progress on server without local game means "needs resume"
+	let matchStarted = $state(false);
 	let matchCompleted = $state(data.match.status === 'completed');
 	let homeLegsWon = $state(data.match.home_legs_won);
 	let awayLegsWon = $state(data.match.away_legs_won);
+	// Track whether the match was in_progress on server when page loaded (needs resume/reset UI)
+	const needsResume = $derived(data.match.status === 'in_progress' && !matchStarted && !matchCompleted);
 	let softCheckout = $state(settingsStore.settings.defaultSoftCheckout);
 
 	let game = $state<GameStore | null>(null);
@@ -191,6 +194,7 @@
 
 	let startError = $state<string | null>(null);
 	let starting = $state(false);
+	let resetting = $state(false);
 
 	async function startGame() {
 		const homePlayer = data.homePlayers[homePlayerIndex];
@@ -202,23 +206,23 @@
 		startError = null;
 
 		try {
-			// Mark match as in_progress on server to prevent double-starts
 			const response = await fetch('?/startGame', {
 				method: 'POST',
 				body: new FormData(),
 				headers: { 'x-sveltekit-action': 'true' }
 			});
 
-			if (!response.ok) {
-				const result = await response.json();
+			const result = await response.json();
+			if (result?.type === 'failure') {
 				startError = result?.data?.error ?? 'Spiel konnte nicht gestartet werden';
 				return;
 			}
 
-			const result = await response.json();
-			if (result?.type === 'failure') {
-				startError = result?.data?.error ?? 'Spiel wird bereits gespielt';
-				return;
+			// Use server-returned leg counts (handles resume case)
+			if (result?.data?.home_legs_won != null) {
+				homeLegsWon = result.data.home_legs_won;
+				awayLegsWon = result.data.away_legs_won;
+				legNumber = homeLegsWon + awayLegsWon + 1;
 			}
 
 			if (isCricket) {
@@ -244,6 +248,45 @@
 			startError = 'Netzwerkfehler beim Starten';
 		} finally {
 			starting = false;
+		}
+	}
+
+	async function resetMatch() {
+		if (resetting) return;
+		resetting = true;
+		startError = null;
+
+		try {
+			const response = await fetch('?/resetMatch', {
+				method: 'POST',
+				body: new FormData(),
+				headers: { 'x-sveltekit-action': 'true' }
+			});
+
+			const result = await response.json();
+			if (result?.type === 'failure') {
+				startError = result?.data?.error ?? 'Zuruecksetzen fehlgeschlagen';
+				return;
+			}
+
+			// Reset local state
+			homeLegsWon = 0;
+			awayLegsWon = 0;
+			legNumber = 1;
+			matchStarted = false;
+			matchCompleted = false;
+			game = null;
+			cricketGame = null;
+			completedLegs = [];
+			// Force data refresh so needsResume becomes false
+			data.match.status = 'scheduled';
+			data.match.home_legs_won = 0;
+			data.match.away_legs_won = 0;
+		} catch (err) {
+			console.error('Error resetting match:', err);
+			startError = 'Netzwerkfehler beim Zuruecksetzen';
+		} finally {
+			resetting = false;
 		}
 	}
 
@@ -543,6 +586,62 @@
 					</div>
 				{/if}
 				<a href="/tournaments/{data.tournament.id}" class="btn btn-primary mt-4">Zum Turnier</a>
+			</div>
+		</div>
+	{:else if needsResume}
+		<!-- Resume / Reset UI for in_progress match without local game state -->
+		<div class="card bg-warning/10 border border-warning/30 shadow-sm" data-testid="resume-match">
+			<div class="card-body text-center">
+				<h2 class="text-lg font-bold">Spiel unterbrochen</h2>
+				<p class="text-sm text-base-content/70">
+					Dieses Spiel wurde bereits gestartet (Leg {legNumber}, Stand: {homeLegsWon}:{awayLegsWon}).
+					Du kannst es fortsetzen oder zuruecksetzen.
+				</p>
+				{#if startError}
+					<div class="alert alert-error text-sm mt-2">{startError}</div>
+				{/if}
+				<div class="grid grid-cols-2 gap-4 mt-4">
+					<div class="form-control">
+						<label class="label text-sm" for="resume-home-player">Heim</label>
+						<select id="resume-home-player" class="select select-bordered select-sm" bind:value={homePlayerIndex}>
+							{#each data.homePlayers as player, i (player.id)}
+								<option value={i}>{player.first_name} {player.last_name}</option>
+							{/each}
+						</select>
+					</div>
+					<div class="form-control">
+						<label class="label text-sm" for="resume-away-player">Gast</label>
+						<select id="resume-away-player" class="select select-bordered select-sm" bind:value={awayPlayerIndex}>
+							{#each data.awayPlayers as player, i (player.id)}
+								<option value={i}>{player.first_name} {player.last_name}</option>
+							{/each}
+						</select>
+					</div>
+				</div>
+				<div class="flex gap-3 mt-4 justify-center">
+					<button
+						class="btn btn-primary"
+						onclick={startGame}
+						disabled={starting}
+						data-testid="resume-game-btn"
+					>
+						{#if starting}
+							<span class="loading loading-spinner loading-xs"></span>
+						{/if}
+						Fortsetzen (ab Leg {legNumber})
+					</button>
+					<button
+						class="btn btn-outline btn-error"
+						onclick={resetMatch}
+						disabled={resetting}
+						data-testid="reset-match-btn"
+					>
+						{#if resetting}
+							<span class="loading loading-spinner loading-xs"></span>
+						{/if}
+						Zuruecksetzen
+					</button>
+				</div>
 			</div>
 		</div>
 	{:else if !matchStarted}
