@@ -88,6 +88,41 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
+	startGame: async ({ request }) => {
+		const formData = await request.formData();
+		const matchId = formData.get('match_id') as string;
+		if (!matchId) return fail(400, { error: 'Match ID required' });
+
+		const match = await matchRepo.getById(matchId);
+		if (!match) return fail(404, { error: 'Match not found' });
+
+		if (match.status === 'in_progress') {
+			return fail(409, { error: 'Spiel wird bereits gespielt' });
+		}
+		if (match.status === 'completed') {
+			return fail(409, { error: 'Spiel ist bereits beendet' });
+		}
+
+		await matchRepo.update(matchId, { status: 'in_progress' });
+		return { success: true, matchId };
+	},
+
+	refreshMatches: async ({ params }) => {
+		const allMatches = await matchRepo.getByTournamentId(params.id);
+		const playableMatches = allMatches
+			.filter((m) => m.status !== 'completed')
+			.slice(0, 4);
+
+		const statuses = playableMatches.map((m) => ({
+			id: m.id,
+			status: m.status,
+			home_legs_won: m.home_legs_won,
+			away_legs_won: m.away_legs_won
+		}));
+
+		return { success: true, statuses };
+	},
+
 	completeLeg: async ({ request, params }) => {
 		const formData = await request.formData();
 		const matchId = formData.get('match_id') as string;

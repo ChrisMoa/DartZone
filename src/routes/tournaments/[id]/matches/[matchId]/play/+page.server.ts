@@ -91,6 +91,21 @@ export const load: PageServerLoad = async ({ params }) => {
 };
 
 export const actions: Actions = {
+	startGame: async ({ params }) => {
+		const match = await matchRepo.getById(params.matchId);
+		if (!match) return fail(404, { error: 'Match not found' });
+
+		if (match.status === 'in_progress') {
+			return fail(409, { error: 'Match is already in progress' });
+		}
+		if (match.status === 'completed') {
+			return fail(409, { error: 'Match is already completed' });
+		}
+
+		await matchRepo.update(params.matchId, { status: 'in_progress' });
+		return { success: true };
+	},
+
 	completeLeg: async ({ request, params }) => {
 		const formData = await request.formData();
 		const winnerSide = formData.get('winner_side') as 'home' | 'away';
