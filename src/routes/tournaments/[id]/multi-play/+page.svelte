@@ -91,34 +91,102 @@
 		activeSlotIndex = index;
 	}
 
-	function startGame(slotIndex: number, homePlayerIdx: number, awayPlayerIdx: number) {
+	let startingSlot = $state<number | null>(null);
+	let startError = $state<string | null>(null);
+
+	async function startGame(slotIndex: number, homePlayerIdx: number, awayPlayerIdx: number) {
 		const mwp = data.matchesWithPlayers[slotIndex];
 		const homePlayer = mwp.homePlayers[homePlayerIdx];
 		const awayPlayer = mwp.awayPlayers[awayPlayerIdx];
 		if (!homePlayer || !awayPlayer) return;
+		if (startingSlot !== null) return;
 
-		const slot = slots[slotIndex];
-		slot.homePlayerIndex = homePlayerIdx;
-		slot.awayPlayerIndex = awayPlayerIdx;
+		startingSlot = slotIndex;
+		startError = null;
 
-		if (isCricket) {
-			slot.game = createCricketGameState({
-				match_id: mwp.match.id,
-				leg_number: slot.legNumber,
-				home_player: homePlayer,
-				away_player: awayPlayer
+		try {
+			// Mark match as in_progress on server
+			const formData = new FormData();
+			formData.set('match_id', mwp.match.id);
+
+			const response = await fetch('?/startGame', {
+				method: 'POST',
+				body: formData,
+				headers: { 'x-sveltekit-action': 'true' }
 			});
-		} else {
-			slot.game = createGameState({
-				match_id: mwp.match.id,
-				leg_number: slot.legNumber,
-				home_player: homePlayer,
-				away_player: awayPlayer,
-				starting_score: startingScore,
-				softCheckout: slot.softCheckout
-			});
+
+			const result = await response.json();
+			if (result?.type === 'failure') {
+				startError = result?.data?.error ?? 'Spiel konnte nicht gestartet werden';
+				return;
+			}
+
+			const slot = slots[slotIndex];
+			slot.homePlayerIndex = homePlayerIdx;
+			slot.awayPlayerIndex = awayPlayerIdx;
+
+			if (isCricket) {
+				slot.game = createCricketGameState({
+					match_id: mwp.match.id,
+					leg_number: slot.legNumber,
+					home_player: homePlayer,
+					away_player: awayPlayer
+				});
+			} else {
+				slot.game = createGameState({
+					match_id: mwp.match.id,
+					leg_number: slot.legNumber,
+					home_player: homePlayer,
+					away_player: awayPlayer,
+					starting_score: startingScore,
+					softCheckout: slot.softCheckout
+				});
+			}
+			slot.matchStarted = true;
+		} catch (err) {
+			console.error('Error starting game:', err);
+			startError = 'Netzwerkfehler beim Starten';
+		} finally {
+			startingSlot = null;
 		}
-		slot.matchStarted = true;
+	}
+
+	let refreshing = $state(false);
+
+	async function refreshMatchStates() {
+		refreshing = true;
+		try {
+			const response = await fetch('?/refreshMatches', {
+				method: 'POST',
+				body: new FormData(),
+				headers: { 'x-sveltekit-action': 'true' }
+			});
+
+			const result = await response.json();
+			if (result?.type === 'success' && result?.data?.statuses) {
+				for (const status of result.data.statuses) {
+					const idx = data.matchesWithPlayers.findIndex(
+						(mwp: (typeof data.matchesWithPlayers)[number]) => mwp.match.id === status.id
+					);
+					if (idx >= 0 && !slots[idx].matchStarted) {
+						// Update slot state from server if not locally started
+						slots[idx].homeLegsWon = status.home_legs_won;
+						slots[idx].awayLegsWon = status.away_legs_won;
+						if (status.status === 'in_progress') {
+							slots[idx].matchStarted = true;
+							// Match is in_progress on server but not here — show as locked
+						}
+						if (status.status === 'completed') {
+							slots[idx].matchCompleted = true;
+						}
+					}
+				}
+			}
+		} catch (err) {
+			console.error('Error refreshing:', err);
+		} finally {
+			refreshing = false;
+		}
 	}
 
 	function handleHit(event: { sector: SectorValue; multiplier: Multiplier; score: number }) {
@@ -251,6 +319,21 @@
 		<a href="/tournaments/{data.tournament.id}" class="btn btn-ghost btn-sm">Zurueck</a>
 		<h1 class="text-xl font-bold flex-1">Multi-Spiel — {data.tournament.name}</h1>
 		<span class="text-xs text-base-content/50">Taste 1–{data.matchesWithPlayers.length} zum Wechseln</span>
+		<button
+			class="btn btn-ghost btn-sm"
+			onclick={refreshMatchStates}
+			disabled={refreshing}
+			title="Spielstatus aktualisieren"
+			data-testid="multi-refresh-btn"
+		>
+			{#if refreshing}
+				<span class="loading loading-spinner loading-xs"></span>
+			{:else}
+				<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+				</svg>
+			{/if}
+		</button>
 	</div>
 
 	{#if data.matchesWithPlayers.length === 0}
@@ -283,6 +366,8 @@
 					matchStarted={slots[i].matchStarted}
 					matchCompleted={slots[i].matchCompleted}
 					isCricket={isCricket}
+					starting={startingSlot === i}
+					error={startingSlot === i || activeSlotIndex === i ? startError : null}
 					onselect={() => selectSlot(i)}
 					onstart={(hpi, api) => startGame(i, hpi, api)}
 				/>
