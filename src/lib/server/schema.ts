@@ -89,4 +89,20 @@ CREATE TABLE IF NOT EXISTS animation_assets (
 	position TEXT NOT NULL DEFAULT 'center',
 	created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS drinking_games (
+	id TEXT PRIMARY KEY,
+	tournament_id TEXT NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+	status TEXT NOT NULL DEFAULT 'running' CHECK(status IN ('running', 'finished')),
+	created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS drinking_scores (
+	id TEXT PRIMARY KEY,
+	drinking_game_id TEXT NOT NULL REFERENCES drinking_games(id) ON DELETE CASCADE,
+	club_id TEXT NOT NULL REFERENCES clubs(id),
+	drink_count INTEGER NOT NULL DEFAULT 0,
+	updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+	UNIQUE(drinking_game_id, club_id)
+);
 `;

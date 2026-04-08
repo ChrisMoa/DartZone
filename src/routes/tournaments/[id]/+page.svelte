@@ -179,6 +179,49 @@
 		</div>
 	</div>
 
+	<!-- Trinkwertung -->
+	{#if data.drinkingGame}
+		<div class="card bg-base-100 shadow-sm" data-testid="drinking-game-card">
+			<div class="card-body p-4 flex-row items-center justify-between">
+				<div class="flex items-center gap-3">
+					<span class="text-2xl">🍺</span>
+					<div>
+						<h2 class="font-semibold">Trinkwertung</h2>
+						<span class="text-sm text-base-content/60">
+							{data.drinkingGame.status === 'running' ? 'Laufend' : 'Beendet'}
+						</span>
+					</div>
+				</div>
+				<a
+					href="/tournaments/{data.tournament.id}/trinkwertung"
+					class="btn btn-primary btn-sm"
+					data-testid="drinking-game-link"
+				>
+					Anzeigen
+				</a>
+			</div>
+		</div>
+	{:else if data.assignedClubIds.length >= 2}
+		<div class="card bg-base-100 shadow-sm">
+			<div class="card-body p-4 flex-row items-center justify-between">
+				<div class="flex items-center gap-3">
+					<span class="text-2xl">🍺</span>
+					<div>
+						<h2 class="font-semibold">Trinkwertung</h2>
+						<span class="text-sm text-base-content/60">Noch nicht gestartet</span>
+					</div>
+				</div>
+				<a
+					href="/tournaments/{data.tournament.id}/trinkwertung"
+					class="btn btn-outline btn-sm"
+					data-testid="drinking-game-create-link"
+				>
+					Erstellen
+				</a>
+			</div>
+		</div>
+	{/if}
+
 	<!-- Club Assignment -->
 	<div class="card bg-base-100 shadow-sm">
 		<div class="card-body">

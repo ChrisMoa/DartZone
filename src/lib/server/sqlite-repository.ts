@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { Club } from '$lib/types/club.js';
 import type { Player } from '$lib/types/club.js';
-import type { Tournament, Match, Standing } from '$lib/types/league.js';
+import type { Tournament, Match, Standing, DrinkingGame, DrinkingScore } from '$lib/types/league.js';
 import type { DartThrow } from '$lib/types/game.js';
 import type {
 	ClubRepository,
@@ -11,7 +11,8 @@ import type {
 	StandingsService,
 	AnimationAsset,
 	AnimationAssetRepository,
-	ThrowRepository
+	ThrowRepository,
+	DrinkingGameRepository
 } from './repository.js';
 
 function generateId(): string {
@@ -712,5 +713,112 @@ export class SqliteThrowRepository implements ThrowRepository {
 			.prepare('SELECT * FROM dart_throws WHERE match_id = ? AND leg_number = ? ORDER BY turn_number, dart_number')
 			.all(matchId, legNumber) as DartThrowRow[];
 		return rows.map((r) => this.rowToThrow(r));
+	}
+}
+
+// --- Drinking Game Repository ---
+
+interface DrinkingGameRow {
+	id: string;
+	tournament_id: string;
+	status: string;
+	created_at: string;
+}
+
+interface DrinkingScoreRow {
+	id: string;
+	drinking_game_id: string;
+	club_id: string;
+	club_name: string;
+	short_name: string;
+	has_crest_flag: number;
+	primary_color: string;
+	drink_count: number;
+	updated_at: string;
+}
+
+export class SqliteDrinkingGameRepository implements DrinkingGameRepository {
+	constructor(private db: Database.Database) {}
+
+	async create(tournamentId: string): Promise<DrinkingGame> {
+		const id = generateId();
+		const ts = now();
+		this.db
+			.prepare('INSERT INTO drinking_games (id, tournament_id, status, created_at) VALUES (?, ?, ?, ?)')
+			.run(id, tournamentId, 'running', ts);
+
+		// Initialize scores for all clubs assigned to the tournament
+		const clubRows = this.db
+			.prepare('SELECT club_id FROM tournament_clubs WHERE tournament_id = ?')
+			.all(tournamentId) as Array<{ club_id: string }>;
+
+		const insertScore = this.db.prepare(
+			'INSERT INTO drinking_scores (id, drinking_game_id, club_id, drink_count, updated_at) VALUES (?, ?, ?, 0, ?)'
+		);
+
+		for (const row of clubRows) {
+			insertScore.run(generateId(), id, row.club_id, ts);
+		}
+
+		return { id, tournament_id: tournamentId, status: 'running', created_at: ts };
+	}
+
+	async getByTournament(tournamentId: string): Promise<DrinkingGame | null> {
+		const row = this.db
+			.prepare('SELECT * FROM drinking_games WHERE tournament_id = ?')
+			.get(tournamentId) as DrinkingGameRow | undefined;
+		if (!row) return null;
+		return {
+			id: row.id,
+			tournament_id: row.tournament_id,
+			status: row.status as DrinkingGame['status'],
+			created_at: row.created_at
+		};
+	}
+
+	async getScores(gameId: string): Promise<DrinkingScore[]> {
+		const rows = this.db
+			.prepare(
+				`SELECT ds.id, ds.drinking_game_id, ds.club_id, c.name as club_name,
+				        c.short_name, (c.crest_data IS NOT NULL) as has_crest_flag,
+				        c.primary_color, ds.drink_count, ds.updated_at
+				 FROM drinking_scores ds
+				 JOIN clubs c ON c.id = ds.club_id
+				 WHERE ds.drinking_game_id = ?
+				 ORDER BY ds.drink_count DESC, c.name ASC`
+			)
+			.all(gameId) as DrinkingScoreRow[];
+
+		return rows.map((r) => ({
+			id: r.id,
+			drinking_game_id: r.drinking_game_id,
+			club_id: r.club_id,
+			club_name: r.club_name,
+			short_name: r.short_name,
+			has_crest: r.has_crest_flag === 1,
+			primary_color: r.primary_color,
+			drink_count: r.drink_count,
+			updated_at: r.updated_at
+		}));
+	}
+
+	async incrementDrink(gameId: string, clubId: string): Promise<void> {
+		this.db
+			.prepare(
+				'UPDATE drinking_scores SET drink_count = drink_count + 1, updated_at = ? WHERE drinking_game_id = ? AND club_id = ?'
+			)
+			.run(now(), gameId, clubId);
+	}
+
+	async decrementDrink(gameId: string, clubId: string): Promise<void> {
+		this.db
+			.prepare(
+				'UPDATE drinking_scores SET drink_count = MAX(0, drink_count - 1), updated_at = ? WHERE drinking_game_id = ? AND club_id = ?'
+			)
+			.run(now(), gameId, clubId);
+	}
+
+	async finish(gameId: string): Promise<void> {
+		this.db.prepare("UPDATE drinking_games SET status = 'finished' WHERE id = ?").run(gameId);
 	}
 }
