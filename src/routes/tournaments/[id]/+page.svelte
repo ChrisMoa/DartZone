@@ -1,14 +1,30 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import LeagueTable from '$lib/components/league/LeagueTable.svelte';
 	import MatchCard from '$lib/components/league/MatchCard.svelte';
 	import KnockoutBracket from '$lib/components/league/KnockoutBracket.svelte';
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
-	import type { TournamentStatus } from '$lib/types/league.js';
+	import type { TournamentStatus, Tournament, Match, Standing, DrinkingGame } from '$lib/types/league.js';
 
 	let { data } = $props();
 
+	// Reactive: always use latest from server load OR polling
+	let tournament = $state<Tournament>(data.tournament);
+	let standings = $state<Standing[]>(data.standings);
+	let matches = $state<Match[]>(data.matches);
+	let drinkingGame = $state<DrinkingGame | null>(data.drinkingGame);
+
+	// Sync when SvelteKit re-runs load (e.g. after form actions or navigation)
+	$effect(() => {
+		tournament = data.tournament;
+		standings = data.standings;
+		matches = data.matches;
+		drinkingGame = data.drinkingGame;
+	});
+
 	const formatLabel = $derived(
-		data.tournament.format === 'round_robin' ? 'Jeder gegen Jeden' : 'K.O.'
+		tournament.format === 'round_robin' ? 'Jeder gegen Jeden' : 'K.O.'
 	);
 
 	const STATUS_BADGE: Record<TournamentStatus, { label: string; class: string }> = {
@@ -24,26 +40,46 @@
 		finished: 'Beendet',
 		aborted: 'Abgebrochen'
 	};
+
+	async function fetchLiveData() {
+		try {
+			const res = await fetch(`/api/tournaments/${data.tournament.id}/live`);
+			if (res.ok) {
+				const result = await res.json();
+				tournament = result.tournament;
+				standings = result.standings;
+				matches = result.matches;
+				drinkingGame = result.drinkingGame;
+			}
+		} catch {
+			// ignore network errors during polling
+		}
+	}
+
+	onMount(() => {
+		const interval = setInterval(fetchLiveData, 2000);
+		return () => clearInterval(interval);
+	});
 </script>
 
 <div class="flex flex-col gap-6">
 	<div class="flex items-center gap-4">
 		<a href="/tournaments" class="btn btn-ghost btn-sm">Zurueck</a>
-		<h1 class="text-2xl font-bold">{data.tournament.name}</h1>
-		<span class="badge {STATUS_BADGE[data.tournament.status].class}" data-testid="tournament-status-badge">
-			{STATUS_BADGE[data.tournament.status].label}
+		<h1 class="text-2xl font-bold">{tournament.name}</h1>
+		<span class="badge {STATUS_BADGE[tournament.status].class}" data-testid="tournament-status-badge">
+			{STATUS_BADGE[tournament.status].label}
 		</span>
 	</div>
 
 	<div class="flex items-center gap-4 text-sm text-base-content/60">
 		<span>
-			{data.tournament.game_mode} &middot; {formatLabel} &middot;
-			{data.tournament.legs_per_set} Legs/Set &middot; {data.tournament.sets_per_match} Sets/Match
+			{tournament.game_mode} &middot; {formatLabel} &middot;
+			{tournament.legs_per_set} Legs/Set &middot; {tournament.sets_per_match} Sets/Match
 		</span>
 		<form method="POST" action="?/updateStatus" class="flex items-center gap-2" data-testid="status-form">
-			<select name="status" class="select select-bordered select-xs" value={data.tournament.status} data-testid="status-select">
+			<select name="status" class="select select-bordered select-xs" value={tournament.status} data-testid="status-select">
 				{#each Object.entries(STATUS_LABELS) as [value, label]}
-					<option {value} selected={value === data.tournament.status}>{label}</option>
+					<option {value} selected={value === tournament.status}>{label}</option>
 				{/each}
 			</select>
 			<button type="submit" class="btn btn-xs btn-outline" data-testid="status-submit">Aendern</button>
@@ -51,27 +87,27 @@
 	</div>
 
 	<!-- Organizer card -->
-	{#if data.tournament.organizer_name}
+	{#if tournament.organizer_name}
 		<div class="card card-border bg-base-100 shadow-sm" data-testid="organizer-card">
 			<div class="card-body p-4 flex-row items-center gap-4">
-				{#if data.tournament.has_organizer_logo}
+				{#if tournament.has_organizer_logo}
 					<img
-						src="/api/tournaments/{data.tournament.id}/logo"
-						alt="Logo {data.tournament.organizer_name}"
+						src="/api/tournaments/{tournament.id}/logo"
+						alt="Logo {tournament.organizer_name}"
 						class="w-14 h-14 rounded-lg object-contain"
 					/>
 				{:else}
 					<div class="w-14 h-14 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
-						{data.tournament.organizer_name.slice(0, 2).toUpperCase()}
+						{tournament.organizer_name.slice(0, 2).toUpperCase()}
 					</div>
 				{/if}
 				<div class="flex flex-col gap-0.5">
-					<span class="font-semibold">{data.tournament.organizer_name}</span>
-					{#if data.tournament.organizer_contact}
-						<span class="text-sm text-base-content/60">{data.tournament.organizer_contact}</span>
+					<span class="font-semibold">{tournament.organizer_name}</span>
+					{#if tournament.organizer_contact}
+						<span class="text-sm text-base-content/60">{tournament.organizer_contact}</span>
 					{/if}
-					{#if data.tournament.organizer_note}
-						<span class="text-sm italic text-base-content/50">'{data.tournament.organizer_note}'</span>
+					{#if tournament.organizer_note}
+						<span class="text-sm italic text-base-content/50">'{tournament.organizer_note}'</span>
 					{/if}
 				</div>
 			</div>
@@ -79,14 +115,14 @@
 	{/if}
 
 	<!-- Standings (round-robin) or Bracket (knockout) -->
-	{#if data.tournament.format === 'round_robin'}
+	{#if tournament.format === 'round_robin'}
 		<div class="card bg-base-100 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title">Tabelle</h2>
-				{#if data.standings.length === 0}
+				{#if standings.length === 0}
 					<p class="text-base-content/60">Noch keine Vereine zugeordnet.</p>
 				{:else}
-					<LeagueTable standings={data.standings} />
+					<LeagueTable {standings} />
 				{/if}
 			</div>
 		</div>
@@ -94,10 +130,10 @@
 		<div class="card bg-base-100 shadow-sm">
 			<div class="card-body">
 				<h2 class="card-title">K.O.-Runde</h2>
-				{#if data.matches.length === 0}
+				{#if matches.length === 0}
 					<p class="text-base-content/60">Noch keine Spiele generiert.</p>
 				{:else}
-					<KnockoutBracket matches={data.matches} tournamentId={data.tournament.id} />
+					<KnockoutBracket {matches} tournamentId={tournament.id} />
 				{/if}
 			</div>
 		</div>
@@ -109,9 +145,9 @@
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-2">
 					<h2 class="card-title">Spiele</h2>
-					{#if data.matches.filter((m) => m.status !== 'completed').length >= 2}
+					{#if matches.filter((m) => m.status !== 'completed').length >= 2}
 						<a
-							href="/tournaments/{data.tournament.id}/multi-play"
+							href="/tournaments/{tournament.id}/multi-play"
 							class="btn btn-sm btn-secondary btn-outline"
 							data-testid="multi-play-btn"
 							title="Bis zu 4 Spiele gleichzeitig spielen"
@@ -122,7 +158,7 @@
 				</div>
 				{#if data.assignedClubIds.length >= 2}
 					<form method="POST" action="?/generatePairings">
-						{#if data.matches.length === 0}
+						{#if matches.length === 0}
 							<button type="submit" class="btn btn-sm btn-secondary" data-testid="generate-pairings-btn">
 								Paarungen generieren
 							</button>
@@ -134,12 +170,12 @@
 					</form>
 				{/if}
 			</div>
-			{#if data.matches.length === 0}
+			{#if matches.length === 0}
 				<p class="text-base-content/60">Noch keine Spiele geplant.</p>
 			{:else}
 				<div class="grid gap-3" data-testid="match-list">
-					{#each data.matches as match (match.id)}
-						<MatchCard {match} showPlayLink={true} tournamentId={data.tournament.id} />
+					{#each matches as match (match.id)}
+						<MatchCard {match} showPlayLink={true} tournamentId={tournament.id} />
 					{/each}
 				</div>
 			{/if}
@@ -153,7 +189,7 @@
 								<div class="form-control flex-1">
 									<label class="label text-sm" for="home_club_id">Heim</label>
 									<select id="home_club_id" name="home_club_id" class="select select-bordered select-sm w-full" data-testid="match-home-select">
-										{#each data.standings as s (s.club_id)}
+										{#each standings as s (s.club_id)}
 											<option value={s.club_id}>{s.club_name}</option>
 										{/each}
 									</select>
@@ -161,7 +197,7 @@
 								<div class="form-control flex-1">
 									<label class="label text-sm" for="away_club_id">Gast</label>
 									<select id="away_club_id" name="away_club_id" class="select select-bordered select-sm w-full" data-testid="match-away-select">
-										{#each data.standings as s (s.club_id)}
+										{#each standings as s (s.club_id)}
 											<option value={s.club_id}>{s.club_name}</option>
 										{/each}
 									</select>
@@ -180,7 +216,7 @@
 	</div>
 
 	<!-- Trinkwertung -->
-	{#if data.drinkingGame}
+	{#if drinkingGame}
 		<div class="card bg-base-100 shadow-sm" data-testid="drinking-game-card">
 			<div class="card-body p-4 flex-row items-center justify-between">
 				<div class="flex items-center gap-3">
@@ -188,12 +224,12 @@
 					<div>
 						<h2 class="font-semibold">Trinkwertung</h2>
 						<span class="text-sm text-base-content/60">
-							{data.drinkingGame.status === 'running' ? 'Laufend' : 'Beendet'}
+							{drinkingGame.status === 'running' ? 'Laufend' : 'Beendet'}
 						</span>
 					</div>
 				</div>
 				<a
-					href="/tournaments/{data.tournament.id}/trinkwertung"
+					href="/tournaments/{tournament.id}/trinkwertung"
 					class="btn btn-primary btn-sm"
 					data-testid="drinking-game-link"
 				>
@@ -212,7 +248,7 @@
 					</div>
 				</div>
 				<a
-					href="/tournaments/{data.tournament.id}/trinkwertung"
+					href="/tournaments/{tournament.id}/trinkwertung"
 					class="btn btn-outline btn-sm"
 					data-testid="drinking-game-create-link"
 				>
@@ -229,7 +265,7 @@
 
 			{#if data.assignedClubIds.length > 0}
 				<div class="flex flex-wrap gap-2 mb-4" data-testid="assigned-clubs">
-					{#each data.standings as standing (standing.club_id)}
+					{#each standings as standing (standing.club_id)}
 						<form method="POST" action="?/removeClub" class="inline">
 							<input type="hidden" name="club_id" value={standing.club_id} />
 							<button type="submit" class="btn btn-sm btn-outline gap-1" data-testid="remove-club-btn">
