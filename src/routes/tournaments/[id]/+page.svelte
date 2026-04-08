@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { invalidateAll } from '$app/navigation';
 	import LeagueTable from '$lib/components/league/LeagueTable.svelte';
 	import MatchCard from '$lib/components/league/MatchCard.svelte';
 	import KnockoutBracket from '$lib/components/league/KnockoutBracket.svelte';
@@ -8,10 +9,19 @@
 
 	let { data } = $props();
 
+	// Reactive: always use latest from server load OR polling
 	let tournament = $state<Tournament>(data.tournament);
 	let standings = $state<Standing[]>(data.standings);
 	let matches = $state<Match[]>(data.matches);
 	let drinkingGame = $state<DrinkingGame | null>(data.drinkingGame);
+
+	// Sync when SvelteKit re-runs load (e.g. after form actions or navigation)
+	$effect(() => {
+		tournament = data.tournament;
+		standings = data.standings;
+		matches = data.matches;
+		drinkingGame = data.drinkingGame;
+	});
 
 	const formatLabel = $derived(
 		tournament.format === 'round_robin' ? 'Jeder gegen Jeden' : 'K.O.'
