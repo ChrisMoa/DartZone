@@ -16,28 +16,24 @@
 		[...scores].sort((a, b) => b.drink_count - a.drink_count || a.club_name.localeCompare(b.club_name))
 	);
 
-	onMount(() => {
-		if (!drinkingGame) return;
-
-		const eventSource = new EventSource(
-			`/api/tournaments/${data.tournament.id}/trinkwertung/stream`
-		);
-
-		eventSource.onmessage = (event) => {
-			const result = JSON.parse(event.data);
-			drinkingGame = result.game;
-			scores = result.scores;
-
-			if (result.game.status !== 'running') {
-				eventSource.close();
+	async function fetchScores() {
+		try {
+			const res = await fetch(`/api/tournaments/${data.tournament.id}/trinkwertung`);
+			if (res.ok) {
+				const result = await res.json();
+				drinkingGame = result.game;
+				scores = result.scores;
 			}
-		};
+		} catch {
+			// ignore network errors during polling
+		}
+	}
 
-		eventSource.onerror = () => {
-			// Browser will auto-reconnect for SSE
-		};
+	onMount(() => {
+		if (!drinkingGame || drinkingGame.status !== 'running') return;
 
-		return () => eventSource.close();
+		const interval = setInterval(fetchScores, 2000);
+		return () => clearInterval(interval);
 	});
 </script>
 

@@ -1,7 +1,6 @@
 import type { RequestHandler } from './$types.js';
 import { error, json } from '@sveltejs/kit';
 import { drinkingGameRepo } from '$lib/server/db.js';
-import { emitDrinkingScoreChange } from '$lib/server/drinking-events.js';
 
 export const GET: RequestHandler = async ({ params }) => {
 	const game = await drinkingGameRepo.getByTournament(params.id);
@@ -26,8 +25,5 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	await drinkingGameRepo.addDrinks(game.id, clubId, amount);
 
 	const scores = await drinkingGameRepo.getScores(game.id);
-
-	emitDrinkingScoreChange(params.id);
-
 	return json({ game, scores });
 };
