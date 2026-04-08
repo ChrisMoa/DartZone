@@ -120,6 +120,22 @@
 			</div>
 		</details>
 
+		<!-- Trinkwertung option -->
+		<div class="form-control">
+			<label class="label cursor-pointer justify-start gap-3">
+				<input
+					type="checkbox"
+					name="enable_drinking_game"
+					class="checkbox checkbox-primary"
+					data-testid="drinking-game-checkbox"
+				/>
+				<span>Trinkwertung aktivieren</span>
+			</label>
+			<span class="label text-sm text-base-content/60 -mt-2 ml-10">
+				Optionaler Trink-Wettbewerb zwischen den Teams
+			</span>
+		</div>
+
 		<div class="flex gap-2 justify-end mt-4">
 			<a href="/tournaments" class="btn btn-ghost">Abbrechen</a>
 			<button type="submit" class="btn btn-primary" data-testid="tournament-form-submit">Erstellen</button>

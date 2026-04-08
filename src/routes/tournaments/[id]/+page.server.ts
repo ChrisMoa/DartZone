@@ -1,16 +1,17 @@
 import type { PageServerLoad, Actions } from './$types.js';
 import { error, fail } from '@sveltejs/kit';
-import { tournamentRepo, clubRepo, matchRepo, standingsService } from '$lib/server/db.js';
+import { tournamentRepo, clubRepo, matchRepo, standingsService, drinkingGameRepo } from '$lib/server/db.js';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const tournament = await tournamentRepo.getById(params.id);
 	if (!tournament) throw error(404, 'Turnier nicht gefunden');
 
-	const [standings, matches, allClubs, assignedClubIds] = await Promise.all([
+	const [standings, matches, allClubs, assignedClubIds, drinkingGame] = await Promise.all([
 		standingsService.getByTournamentId(params.id),
 		matchRepo.getByTournamentId(params.id),
 		clubRepo.getAll(),
-		tournamentRepo.getClubIds(params.id)
+		tournamentRepo.getClubIds(params.id),
+		drinkingGameRepo.getByTournament(params.id)
 	]);
 
 	const availableClubs = allClubs.filter((c) => !assignedClubIds.includes(c.id));
@@ -22,7 +23,7 @@ export const load: PageServerLoad = async ({ params }) => {
 		hasMissingPairings = matches.length < expectedPairs;
 	}
 
-	return { tournament, standings, matches, availableClubs, assignedClubIds, hasMissingPairings };
+	return { tournament, standings, matches, availableClubs, assignedClubIds, hasMissingPairings, drinkingGame };
 };
 
 export const actions: Actions = {
