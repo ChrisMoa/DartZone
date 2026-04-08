@@ -1,6 +1,6 @@
 import type { Club } from '$lib/types/club.js';
 import type { Player } from '$lib/types/club.js';
-import type { Tournament, Match, Standing } from '$lib/types/league.js';
+import type { Tournament, Match, Standing, DrinkingGame, DrinkingScore } from '$lib/types/league.js';
 import type { DartThrow } from '$lib/types/game.js';
 
 export interface ClubRepository {
@@ -74,4 +74,14 @@ export interface ThrowRepository {
 export interface StandingsService {
 	getByTournamentId(tournamentId: string): Promise<Standing[]>;
 	recalculate(tournamentId: string): Promise<Standing[]>;
+}
+
+export interface DrinkingGameRepository {
+	create(tournamentId: string): Promise<DrinkingGame>;
+	getByTournament(tournamentId: string): Promise<DrinkingGame | null>;
+	getScores(gameId: string): Promise<DrinkingScore[]>;
+	incrementDrink(gameId: string, clubId: string): Promise<void>;
+	decrementDrink(gameId: string, clubId: string): Promise<void>;
+	addDrinks(gameId: string, clubId: string, amount: number): Promise<void>;
+	finish(gameId: string): Promise<void>;
 }

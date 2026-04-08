@@ -1,7 +1,7 @@
 import type { Actions } from './$types.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { tournamentSchema } from '$lib/utils/validation.js';
-import { tournamentRepo } from '$lib/server/db.js';
+import { tournamentRepo, drinkingGameRepo } from '$lib/server/db.js';
 
 export const actions: Actions = {
 	default: async ({ request }) => {
@@ -42,6 +42,12 @@ export const actions: Actions = {
 		if (logoFile && logoFile.size > 0) {
 			const buffer = Buffer.from(await logoFile.arrayBuffer());
 			await tournamentRepo.setLogoData(tournament.id, buffer, logoFile.type);
+		}
+
+		// Create drinking game if enabled
+		const enableDrinkingGame = formData.get('enable_drinking_game');
+		if (enableDrinkingGame) {
+			await drinkingGameRepo.create(tournament.id);
 		}
 
 		throw redirect(303, `/tournaments/${tournament.id}`);

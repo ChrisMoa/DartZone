@@ -1,0 +1,4 @@
+# idea
+during a running tournament, there is also an additional discipline. There is also a game of which team drinks the most drinks (only one type of drink, doesnt matter what). The game should have one input page (similar to a running match) and one displaying page. The table should not be in the same style as a dart tournament itself, it should be more a progressbar, where each team is on the left side and increases with there drink counter to the right. 
+I think for the integration itself it can be also handled as an own game and this "game" can be also started with the same teams as the tournament (maybe could be simplified, by whenever a dart tournament will be created it can also this game optionally with the same teams created). 
+Think about how to setup this the best and bring also your own ideas, especially in the architecture and also the design itself

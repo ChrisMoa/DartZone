@@ -46,3 +46,22 @@ export interface Standing {
 	legs_against: number;
 	points: number;
 }
+
+export interface DrinkingGame {
+	id: string;
+	tournament_id: string;
+	status: 'running' | 'finished';
+	created_at: string;
+}
+
+export interface DrinkingScore {
+	id: string;
+	drinking_game_id: string;
+	club_id: string;
+	club_name: string;
+	short_name: string;
+	has_crest: boolean;
+	primary_color: string;
+	drink_count: number;
+	updated_at: string;
+}
