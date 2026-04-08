@@ -130,6 +130,37 @@ describe('SqliteDrinkingGameRepository', () => {
 		});
 	});
 
+	describe('addDrinks', () => {
+		it('adds multiple drinks at once', async () => {
+			const game = await repo.create('t1');
+			await repo.addDrinks(game.id, 'club1', 5);
+
+			const scores = await repo.getScores(game.id);
+			const club1 = scores.find((s) => s.club_id === 'club1');
+			expect(club1!.drink_count).toBe(5);
+		});
+
+		it('subtracts drinks with negative amount', async () => {
+			const game = await repo.create('t1');
+			await repo.addDrinks(game.id, 'club1', 10);
+			await repo.addDrinks(game.id, 'club1', -3);
+
+			const scores = await repo.getScores(game.id);
+			const club1 = scores.find((s) => s.club_id === 'club1');
+			expect(club1!.drink_count).toBe(7);
+		});
+
+		it('does not go below zero when subtracting', async () => {
+			const game = await repo.create('t1');
+			await repo.addDrinks(game.id, 'club1', 2);
+			await repo.addDrinks(game.id, 'club1', -5);
+
+			const scores = await repo.getScores(game.id);
+			const club1 = scores.find((s) => s.club_id === 'club1');
+			expect(club1!.drink_count).toBe(0);
+		});
+	});
+
 	describe('finish', () => {
 		it('sets the game status to finished', async () => {
 			const game = await repo.create('t1');

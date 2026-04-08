@@ -818,6 +818,14 @@ export class SqliteDrinkingGameRepository implements DrinkingGameRepository {
 			.run(now(), gameId, clubId);
 	}
 
+	async addDrinks(gameId: string, clubId: string, amount: number): Promise<void> {
+		this.db
+			.prepare(
+				'UPDATE drinking_scores SET drink_count = MAX(0, drink_count + ?), updated_at = ? WHERE drinking_game_id = ? AND club_id = ?'
+			)
+			.run(amount, now(), gameId, clubId);
+	}
+
 	async finish(gameId: string): Promise<void> {
 		this.db.prepare("UPDATE drinking_games SET status = 'finished' WHERE id = ?").run(gameId);
 	}

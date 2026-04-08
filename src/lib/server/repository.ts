@@ -82,5 +82,6 @@ export interface DrinkingGameRepository {
 	getScores(gameId: string): Promise<DrinkingScore[]>;
 	incrementDrink(gameId: string, clubId: string): Promise<void>;
 	decrementDrink(gameId: string, clubId: string): Promise<void>;
+	addDrinks(gameId: string, clubId: string, amount: number): Promise<void>;
 	finish(gameId: string): Promise<void>;
 }
