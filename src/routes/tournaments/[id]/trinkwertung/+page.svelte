@@ -7,7 +7,6 @@
 
 	let drinkingGame = $state<DrinkingGame | null>(data.drinkingGame);
 	let scores = $state<DrinkingScore[]>(data.scores);
-	let pollInterval: ReturnType<typeof setInterval> | null = null;
 
 	const maxCount = $derived(
 		Math.max(1, ...scores.map((s) => s.drink_count))
@@ -17,32 +16,28 @@
 		[...scores].sort((a, b) => b.drink_count - a.drink_count || a.club_name.localeCompare(b.club_name))
 	);
 
-	async function fetchScores() {
-		try {
-			const res = await fetch(`/api/tournaments/${data.tournament.id}/trinkwertung`);
-			if (res.ok) {
-				const result = await res.json();
-				drinkingGame = result.game;
-				scores = result.scores;
-
-				if (result.game.status !== 'running' && pollInterval) {
-					clearInterval(pollInterval);
-					pollInterval = null;
-				}
-			}
-		} catch {
-			// silently ignore network errors during polling
-		}
-	}
-
 	onMount(() => {
-		if (drinkingGame?.status === 'running') {
-			pollInterval = setInterval(fetchScores, 2000);
-		}
+		if (!drinkingGame) return;
 
-		return () => {
-			if (pollInterval) clearInterval(pollInterval);
+		const eventSource = new EventSource(
+			`/api/tournaments/${data.tournament.id}/trinkwertung/stream`
+		);
+
+		eventSource.onmessage = (event) => {
+			const result = JSON.parse(event.data);
+			drinkingGame = result.game;
+			scores = result.scores;
+
+			if (result.game.status !== 'running') {
+				eventSource.close();
+			}
 		};
+
+		eventSource.onerror = () => {
+			// Browser will auto-reconnect for SSE
+		};
+
+		return () => eventSource.close();
 	});
 </script>
 

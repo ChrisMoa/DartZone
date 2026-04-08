@@ -4,69 +4,46 @@
 
 	let { data } = $props();
 
-	let scores = $state<DrinkingScore[]>([...data.scores].sort((a, b) => a.club_name.localeCompare(b.club_name)));
-	let selectedClubId = $state<string | null>(scores.length > 0 ? scores[0].club_id : null);
-	let inputValue = $state('1');
-	let sending = $state(false);
+	let scores = $state<DrinkingScore[]>(
+		[...data.scores].sort((a, b) => a.club_name.localeCompare(b.club_name))
+	);
+	let sending = $state<string | null>(null);
+	let customClubId = $state<string | null>(null);
+	let customValue = $state('2');
 
 	const isRunning = $derived(data.drinkingGame.status === 'running');
-	const selectedScore = $derived(scores.find((s) => s.club_id === selectedClubId));
 
-	function selectClub(clubId: string) {
-		selectedClubId = clubId;
-	}
+	async function addDrinks(clubId: string, amount: number) {
+		if (sending || !isRunning) return;
 
-	function appendDigit(digit: string) {
-		if (inputValue === '0') {
-			inputValue = digit;
-		} else {
-			inputValue = inputValue + digit;
-		}
-	}
-
-	function clearInput() {
-		inputValue = '1';
-	}
-
-	function backspace() {
-		if (inputValue.length <= 1) {
-			inputValue = '0';
-		} else {
-			inputValue = inputValue.slice(0, -1);
-		}
-	}
-
-	async function submitAmount(amount: number) {
-		if (!selectedClubId || amount === 0 || sending) return;
-
-		sending = true;
+		sending = clubId;
 		try {
 			const res = await fetch(`/api/tournaments/${data.tournament.id}/trinkwertung`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ clubId: selectedClubId, amount })
+				body: JSON.stringify({ clubId, amount })
 			});
 			if (res.ok) {
 				const result = await res.json();
-				scores = (result.scores as DrinkingScore[]).sort((a, b) => a.club_name.localeCompare(b.club_name));
+				scores = (result.scores as DrinkingScore[]).sort((a, b) =>
+					a.club_name.localeCompare(b.club_name)
+				);
 			}
 		} finally {
-			sending = false;
-			inputValue = '1';
+			sending = null;
 		}
 	}
 
-	function handleAdd() {
-		const val = parseInt(inputValue, 10);
-		if (!isNaN(val) && val > 0) {
-			submitAmount(val);
-		}
+	function toggleCustom(clubId: string) {
+		customClubId = customClubId === clubId ? null : clubId;
+		customValue = '2';
 	}
 
-	function handleSubtract() {
-		const val = parseInt(inputValue, 10);
+	function submitCustom(clubId: string, positive: boolean) {
+		const val = parseInt(customValue, 10);
 		if (!isNaN(val) && val > 0) {
-			submitAmount(-val);
+			addDrinks(clubId, positive ? val : -val);
+			customClubId = null;
 		}
 	}
 </script>
@@ -83,89 +60,93 @@
 		</div>
 	{/if}
 
-	<!-- Team selection -->
-	<div class="flex flex-col gap-2" data-testid="drinking-team-selection">
+	<div class="flex flex-col gap-3" data-testid="drinking-input">
 		{#each scores as score (score.club_id)}
-			<button
-				type="button"
-				class="flex items-center gap-3 p-3 rounded-lg border-2 transition-all {selectedClubId === score.club_id ? 'border-primary bg-primary/10 shadow-md' : 'border-base-300 bg-base-100'}"
-				onclick={() => selectClub(score.club_id)}
-				data-testid="team-select-btn"
-			>
-				<ClubCrest
-					club_id={score.club_id}
-					has_crest={score.has_crest}
-					club_name={score.club_name}
-					primary_color={score.primary_color}
-					size={36}
-				/>
-				<span class="font-semibold flex-1 text-left truncate">{score.club_name}</span>
-				<span class="text-2xl font-bold tabular-nums min-w-[3ch] text-right" data-testid="team-drink-count">
-					{score.drink_count}
-				</span>
-			</button>
-		{/each}
-	</div>
+			{@const isActive = sending === score.club_id}
+			<div class="card bg-base-100 shadow-sm" data-testid="drinking-input-card">
+				<div class="card-body p-3 gap-2">
+					<div class="flex items-center gap-3">
+						<ClubCrest
+							club_id={score.club_id}
+							has_crest={score.has_crest}
+							club_name={score.club_name}
+							primary_color={score.primary_color}
+							size={40}
+						/>
+						<div class="flex flex-col flex-1 min-w-0">
+							<span class="font-semibold truncate">{score.club_name}</span>
+							<span class="text-2xl font-bold tabular-nums" data-testid="drink-count">
+								{score.drink_count}
+							</span>
+						</div>
+						<div class="flex items-center gap-2">
+							<button
+								type="button"
+								class="btn btn-outline btn-sm"
+								disabled={!isRunning || isActive || score.drink_count === 0}
+								onclick={() => addDrinks(score.club_id, -1)}
+								data-testid="decrement-btn"
+							>
+								-1
+							</button>
+							<button
+								type="button"
+								class="btn btn-success btn-lg text-xl min-w-16"
+								disabled={!isRunning || isActive}
+								onclick={() => addDrinks(score.club_id, 1)}
+								data-testid="increment-btn"
+							>
+								{isActive ? '...' : '+1'}
+							</button>
+							<button
+								type="button"
+								class="btn btn-ghost btn-sm"
+								disabled={!isRunning}
+								onclick={() => toggleCustom(score.club_id)}
+								data-testid="custom-toggle-btn"
+								title="Andere Anzahl eingeben"
+							>
+								#
+							</button>
+						</div>
+					</div>
 
-	{#if isRunning && selectedScore}
-		<!-- Keypad -->
-		<div class="card bg-base-100 shadow-sm" data-testid="drinking-keypad">
-			<div class="card-body p-4 gap-3">
-				<div class="text-center">
-					<span class="text-sm text-base-content/60">Anzahl fuer</span>
-					<span class="font-semibold ml-1">{selectedScore.club_name}</span>
-				</div>
-
-				<!-- Display -->
-				<div class="text-center text-4xl font-bold tabular-nums py-2" data-testid="keypad-display">
-					{inputValue}
-				</div>
-
-				<!-- Number grid -->
-				<div class="grid grid-cols-3 gap-2">
-					{#each ['1', '2', '3', '4', '5', '6', '7', '8', '9'] as digit}
-						<button
-							type="button"
-							class="btn btn-lg"
-							onclick={() => appendDigit(digit)}
-							data-testid="keypad-{digit}"
-						>
-							{digit}
-						</button>
-					{/each}
-					<button type="button" class="btn btn-lg" onclick={clearInput} data-testid="keypad-clear">
-						C
-					</button>
-					<button type="button" class="btn btn-lg" onclick={() => appendDigit('0')} data-testid="keypad-0">
-						0
-					</button>
-					<button type="button" class="btn btn-lg" onclick={backspace} data-testid="keypad-backspace">
-						←
-					</button>
-				</div>
-
-				<!-- Action buttons -->
-				<div class="grid grid-cols-2 gap-2 mt-2">
-					<button
-						type="button"
-						class="btn btn-error btn-lg text-xl"
-						disabled={sending || !selectedClubId || parseInt(inputValue) === 0 || (selectedScore?.drink_count ?? 0) === 0}
-						onclick={handleSubtract}
-						data-testid="keypad-subtract"
-					>
-						- {inputValue}
-					</button>
-					<button
-						type="button"
-						class="btn btn-success btn-lg text-xl"
-						disabled={sending || !selectedClubId || parseInt(inputValue) === 0}
-						onclick={handleAdd}
-						data-testid="keypad-add"
-					>
-						+ {inputValue}
-					</button>
+					{#if customClubId === score.club_id}
+						<div class="flex items-center gap-2 pt-1 border-t border-base-200" data-testid="custom-input-row">
+							<span class="text-sm text-base-content/60">Anzahl:</span>
+							<div class="join flex-1">
+								{#each ['2', '3', '5', '10'] as val}
+									<button
+										type="button"
+										class="join-item btn btn-sm {customValue === val ? 'btn-primary' : ''}"
+										onclick={() => (customValue = val)}
+									>
+										{val}
+									</button>
+								{/each}
+							</div>
+							<button
+								type="button"
+								class="btn btn-error btn-sm"
+								disabled={isActive || score.drink_count === 0}
+								onclick={() => submitCustom(score.club_id, false)}
+								data-testid="custom-subtract-btn"
+							>
+								-{customValue}
+							</button>
+							<button
+								type="button"
+								class="btn btn-success btn-sm"
+								disabled={isActive}
+								onclick={() => submitCustom(score.club_id, true)}
+								data-testid="custom-add-btn"
+							>
+								+{customValue}
+							</button>
+						</div>
+					{/if}
 				</div>
 			</div>
-		</div>
-	{/if}
+		{/each}
+	</div>
 </div>
