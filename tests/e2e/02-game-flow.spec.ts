@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe.serial('Game Flow', () => {
-	test('navigates to play page from tournament detail', async ({ page }) => {
+	test('navigates to play page from organizer view', async ({ page }) => {
 		await page.goto('/tournaments');
 		await page.getByTestId('tournament-card').first().click();
+		await page.getByTestId('organizer-view-link').click();
 		// match-4 is scheduled, should have a play button
 		const playBtn = page.getByTestId('play-match-btn').first();
 		await expect(playBtn).toBeVisible();
@@ -14,6 +15,7 @@ test.describe.serial('Game Flow', () => {
 	test('shows player selection before game starts', async ({ page }) => {
 		await page.goto('/tournaments');
 		await page.getByTestId('tournament-card').first().click();
+		await page.getByTestId('organizer-view-link').click();
 		await page.getByTestId('play-match-btn').first().click();
 		await expect(page.getByTestId('player-selection')).toBeVisible();
 		await expect(page.getByTestId('home-player-select')).toBeVisible();
@@ -23,6 +25,7 @@ test.describe.serial('Game Flow', () => {
 	test('starts game and shows scoreboard', async ({ page }) => {
 		await page.goto('/tournaments');
 		await page.getByTestId('tournament-card').first().click();
+		await page.getByTestId('organizer-view-link').click();
 		await page.getByTestId('play-match-btn').first().click();
 		await page.getByTestId('start-game-btn').click();
 		await expect(page.getByTestId('scoreboard')).toBeVisible();
@@ -33,6 +36,7 @@ test.describe.serial('Game Flow', () => {
 	test('registers a throw on dartboard click', async ({ page }) => {
 		await page.goto('/tournaments');
 		await page.getByTestId('tournament-card').first().click();
+		await page.getByTestId('organizer-view-link').click();
 		await page.getByTestId('play-match-btn').first().click();
 		await page.getByTestId('start-game-btn').click();
 
@@ -51,6 +55,7 @@ test.describe.serial('Game Flow', () => {
 	test('undo restores previous score', async ({ page }) => {
 		await page.goto('/tournaments');
 		await page.getByTestId('tournament-card').first().click();
+		await page.getByTestId('organizer-view-link').click();
 		await page.getByTestId('play-match-btn').first().click();
 		await page.getByTestId('start-game-btn').click();
 
@@ -65,6 +70,7 @@ test.describe.serial('Game Flow', () => {
 	test('turn switches after 3 darts', async ({ page }) => {
 		await page.goto('/tournaments');
 		await page.getByTestId('tournament-card').first().click();
+		await page.getByTestId('organizer-view-link').click();
 		await page.getByTestId('play-match-btn').first().click();
 		await page.getByTestId('start-game-btn').click();
 

@@ -23,9 +23,10 @@ test.describe.serial('Tournament Table', () => {
 		expect(pointValues.some((p) => parseInt(p) > 0)).toBe(true);
 	});
 
-	test('matches are displayed on tournament detail', async ({ page }) => {
+	test('matches are displayed on organizer view', async ({ page }) => {
 		await page.goto('/tournaments');
 		await page.getByTestId('tournament-card').first().click();
+		await page.getByTestId('organizer-view-link').click();
 		await expect(page.getByTestId('match-list')).toBeVisible();
 		await expect(page.getByTestId('match-card')).toHaveCount(4);
 	});
