@@ -75,7 +75,7 @@
 			</div>
 		</div>
 
-		<div class="text-center mt-1 flex items-center justify-center gap-2">
+		<div class="text-center mt-1 flex items-center justify-center gap-2 flex-wrap">
 			<span class="badge badge-sm {statusClass}">{statusLabel}</span>
 			{#if showPlayLink && tournamentId && match.status !== 'completed'}
 				<a
@@ -84,6 +84,17 @@
 					data-testid="play-match-btn"
 				>
 					Spielen
+				</a>
+			{/if}
+			{#if tournamentId && match.status === 'in_progress'}
+				<a
+					href="/tournaments/{tournamentId}/matches/{match.id}/view"
+					target="_blank"
+					rel="noopener"
+					class="btn btn-xs btn-outline"
+					data-testid="view-match-btn"
+				>
+					Zuschauer
 				</a>
 			{/if}
 		</div>

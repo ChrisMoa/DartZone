@@ -243,6 +243,7 @@
 				});
 			}
 			matchStarted = true;
+			pushLiveState();
 		} catch (err) {
 			console.error('Error starting game:', err);
 			startError = 'Netzwerkfehler beim Starten';
@@ -282,12 +283,54 @@
 			data.match.status = 'scheduled';
 			data.match.home_legs_won = 0;
 			data.match.away_legs_won = 0;
+			clearLiveState();
 		} catch (err) {
 			console.error('Error resetting match:', err);
 			startError = 'Netzwerkfehler beim Zuruecksetzen';
 		} finally {
 			resetting = false;
 		}
+	}
+
+	function pushLiveState() {
+		const g = activeGame;
+		if (!g) return;
+		const lastThrow = g.throws[g.throws.length - 1] ?? null;
+		const homeAvg = 'homeAverage' in g ? (g as GameStore).homeAverage : 0;
+		const awayAvg = 'awayAverage' in g ? (g as GameStore).awayAverage : 0;
+		const payload = {
+			leg_number: g.leg_number,
+			home_player_name: `${g.home_player.first_name} ${g.home_player.last_name}`,
+			away_player_name: `${g.away_player.first_name} ${g.away_player.last_name}`,
+			home_remaining: g.home_remaining,
+			away_remaining: g.away_remaining,
+			home_average: homeAvg,
+			away_average: awayAvg,
+			current_player_side: g.current_player_id === g.home_player.id ? 'home' : 'away',
+			current_dart: g.current_dart,
+			current_turn_throws: g.currentTurnThrows.map((t) => ({
+				sector: t.sector,
+				multiplier: t.multiplier,
+				score: t.score,
+				is_bust: t.is_bust
+			})),
+			last_throw_score: lastThrow?.score ?? null,
+			status: g.status,
+			game_mode: data.tournament.game_mode
+		};
+		fetch(`/api/matches/${data.match.id}/live`, {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify(payload)
+		}).catch(() => {});
+	}
+
+	function clearLiveState() {
+		fetch(`/api/matches/${data.match.id}/live`, {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ clear: true })
+		}).catch(() => {});
 	}
 
 	function handleHit(event: { sector: SectorValue; multiplier: Multiplier; score: number }) {
@@ -299,6 +342,7 @@
 			if (g.lastSpecialHit && settingsStore.isAnimationEnabled(g.lastSpecialHit)) {
 				animations.trigger(g.lastSpecialHit);
 			}
+			pushLiveState();
 		} catch (err) {
 			console.error('Error registering throw:', err);
 		}
@@ -312,6 +356,7 @@
 		const g = activeGame;
 		if (!g) return;
 		g.undoLastThrow();
+		pushLiveState();
 	}
 
 	// Forfeit state
@@ -392,6 +437,7 @@
 					softCheckout
 				});
 			}
+			pushLiveState();
 		} catch (err) {
 			console.error('Error forfeiting leg:', err);
 		} finally {
@@ -503,6 +549,7 @@
 					softCheckout
 				});
 			}
+			pushLiveState();
 		} catch (err) {
 			console.error('Error saving leg result:', err);
 		} finally {
@@ -512,11 +559,20 @@
 </script>
 
 <div class="flex flex-col gap-4" data-testid="game-page">
-	<div class="flex items-center gap-4">
+	<div class="flex items-center gap-4 flex-wrap">
 		<a href="/tournaments/{data.tournament.id}" class="btn btn-ghost btn-sm">Zurueck</a>
 		<h1 class="text-xl font-bold flex-1">
 			{data.match.home_club.short_name} vs {data.match.away_club.short_name}
 		</h1>
+		<a
+			href="/tournaments/{data.tournament.id}/matches/{data.match.id}/view"
+			target="_blank"
+			rel="noopener"
+			class="btn btn-outline btn-sm"
+			data-testid="viewer-link"
+		>
+			Zuschauer-Ansicht
+		</a>
 		{#if matchStarted && !matchCompleted}
 			<button
 				class="btn btn-outline btn-error btn-sm"
