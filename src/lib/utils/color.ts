@@ -47,6 +47,7 @@ export interface ColorPreset {
 }
 
 export const COLOR_PRESETS: ColorPreset[] = [
+	{ name: 'dartzone', label: 'DartZone', primary: '#0a3d2a', accent: '#f4c430' },
 	{ name: 'forest', label: 'Waldgruen', primary: '#2d6a4f', accent: '#95d5b2' },
 	{ name: 'royal', label: 'Koenigsblau', primary: '#1d3557', accent: '#a8dadc' },
 	{ name: 'crimson', label: 'Karminrot', primary: '#9b2226', accent: '#f4a261' },

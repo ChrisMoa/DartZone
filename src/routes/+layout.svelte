@@ -10,29 +10,67 @@
 	setContext('theme', themeStore);
 	setContext('settings', settingsStore);
 
+	let mobileOpen = $state(false);
+
 	$effect(() => {
 		themeStore.apply();
 	});
+
+	const navItems = [
+		{ href: '/clubs', label: 'Vereine' },
+		{ href: '/tournaments', label: 'Turniere' },
+		{ href: '/stats', label: 'Statistiken' },
+		{ href: '/import', label: 'Excel-Import' },
+		{ href: '/export', label: 'Backup' },
+		{ href: '/feedback', label: 'Feedback' }
+	];
 </script>
 
 <svelte:head>
 	<title>DartZone</title>
 </svelte:head>
 
-<div class="min-h-screen bg-base-200">
+<div class="min-h-screen">
 	<a href="#main-content" class="skip-link">Zum Inhalt springen</a>
-	<nav class="navbar bg-gradient-to-r from-base-100 to-base-200 shadow-sm sticky top-0 z-40 border-b border-base-300/50" aria-label="Hauptnavigation">
-		<div class="flex-1">
-			<a href="/" class="btn btn-ghost text-xl font-bold text-primary" title="DartZone v{__APP_VERSION__} (Build: {__APP_BUILD_DATE__})">DartZone</a>
+	<nav
+		class="navbar navbar-glass shadow-sm sticky top-0 z-40 border-b border-base-300/40"
+		aria-label="Hauptnavigation"
+	>
+		<div class="flex-1 gap-2">
+			<button
+				class="btn btn-ghost btn-circle md:hidden"
+				aria-label="Menü öffnen"
+				onclick={() => (mobileOpen = !mobileOpen)}
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+				</svg>
+			</button>
+			<a
+				href="/"
+				class="btn btn-ghost gap-2 px-2"
+				title="DartZone v{__APP_VERSION__} (Build: {__APP_BUILD_DATE__})"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" class="h-7 w-7 shrink-0" aria-hidden="true">
+					<circle cx="12" cy="12" r="11" fill="var(--color-primary)" />
+					<circle cx="12" cy="12" r="9" fill="none" stroke="var(--color-base-100)" stroke-width="0.5" opacity="0.4" />
+					<path d="M12 1 A11 11 0 0 1 21.5 6.5 L12 12 Z" fill="var(--color-error)" opacity="0.85" />
+					<path d="M21.5 6.5 A11 11 0 0 1 21.5 17.5 L12 12 Z" fill="var(--color-base-100)" opacity="0.15" />
+					<path d="M21.5 17.5 A11 11 0 0 1 12 23 L12 12 Z" fill="var(--color-error)" opacity="0.85" />
+					<path d="M12 23 A11 11 0 0 1 2.5 17.5 L12 12 Z" fill="var(--color-base-100)" opacity="0.15" />
+					<path d="M2.5 17.5 A11 11 0 0 1 2.5 6.5 L12 12 Z" fill="var(--color-error)" opacity="0.85" />
+					<path d="M2.5 6.5 A11 11 0 0 1 12 1 L12 12 Z" fill="var(--color-base-100)" opacity="0.15" />
+					<circle cx="12" cy="12" r="3.2" fill="var(--color-base-100)" opacity="0.85" />
+					<circle cx="12" cy="12" r="1.4" fill="var(--color-accent)" />
+				</svg>
+				<span class="font-display text-xl font-extrabold tracking-wide text-primary">DartZone</span>
+			</a>
 		</div>
 		<div class="flex-none flex items-center gap-1">
-			<ul class="menu menu-horizontal gap-1">
-				<li><a href="/clubs">Vereine</a></li>
-				<li><a href="/tournaments">Turniere</a></li>
-				<li><a href="/stats">Statistiken</a></li>
-				<li><a href="/import">Excel-Import</a></li>
-				<li><a href="/export">Backup</a></li>
-				<li><a href="/feedback">Feedback</a></li>
+			<ul class="menu menu-horizontal gap-1 hidden md:flex">
+				{#each navItems as item (item.href)}
+					<li><a href={item.href}>{item.label}</a></li>
+				{/each}
 			</ul>
 			<a
 				href="/settings"
@@ -63,6 +101,18 @@
 			</button>
 		</div>
 	</nav>
+
+	{#if mobileOpen}
+		<div class="md:hidden border-b border-base-300/40 navbar-glass">
+			<ul class="menu menu-vertical w-full p-2">
+				{#each navItems as item (item.href)}
+					<li>
+						<a href={item.href} onclick={() => (mobileOpen = false)}>{item.label}</a>
+					</li>
+				{/each}
+			</ul>
+		</div>
+	{/if}
 
 	<main id="main-content" class="container mx-auto p-4 max-w-6xl">
 		{@render children()}
