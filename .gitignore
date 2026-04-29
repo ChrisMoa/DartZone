@@ -41,6 +41,7 @@ data/
 # Local source data (not for VCS)
 Mannschaften.xlsx
 .~lock.*#
+scripts/import-mannschaften.mjs
 
 # Misc
 *.log
