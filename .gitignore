@@ -38,6 +38,10 @@ blob-report/
 # Database
 data/
 
+# Local source data (not for VCS)
+Mannschaften.xlsx
+.~lock.*#
+
 # Misc
 *.log
 
