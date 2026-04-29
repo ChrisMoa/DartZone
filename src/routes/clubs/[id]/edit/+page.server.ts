@@ -2,6 +2,7 @@ import type { PageServerLoad, Actions } from './$types.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 import { clubSchema } from '$lib/utils/validation.js';
 import { clubRepo } from '$lib/server/db.js';
+import { extractDominantColor } from '$lib/server/image-color.js';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const club = await clubRepo.getById(params.id);
@@ -38,6 +39,11 @@ export const actions: Actions = {
 		if (crestFile && crestFile.size > 0) {
 			const buffer = Buffer.from(await crestFile.arrayBuffer());
 			await clubRepo.setCrestData(params.id, buffer, crestFile.type);
+
+			const dominant = await extractDominantColor(buffer, crestFile.type);
+			if (dominant) {
+				await clubRepo.update(params.id, { primary_color: dominant });
+			}
 		}
 
 		throw redirect(303, `/clubs/${params.id}`);

@@ -42,6 +42,7 @@
 		"@sveltejs/adapter-node": "^5.5.4",
 		"better-sqlite3": "^12.6.2",
 		"gsap": "^3.14.2",
+		"jimp": "^1.6.1",
 		"xlsx": "^0.18.5",
 		"zod": "^4.3.6"
 	}
