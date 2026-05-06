@@ -281,7 +281,7 @@
 		top: 50%;
 		width: 100%;
 		height: 0;
-		border-top: 2px solid oklch(var(--bc) / 0.2);
+		border-top: 2px solid oklch(var(--bc) / 0.35);
 	}
 
 	/* outgoing horizontal stub */
@@ -292,7 +292,7 @@
 		top: 50%;
 		width: 100%;
 		height: 0;
-		border-top: 2px solid oklch(var(--bc) / 0.2);
+		border-top: 2px solid oklch(var(--bc) / 0.35);
 	}
 
 	/* outgoing vertical stub joins pair into next round */
@@ -302,7 +302,7 @@
 		position: absolute;
 		right: 0;
 		width: 0;
-		border-right: 2px solid oklch(var(--bc) / 0.2);
+		border-right: 2px solid oklch(var(--bc) / 0.35);
 	}
 
 	.bracket-conn-out--top::after {
@@ -333,33 +333,36 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.125rem;
-		border: 1.5px solid oklch(var(--bc) / 0.12);
+		border: 2px solid oklch(var(--bc) / 0.35);
 		border-radius: 0.625rem;
-		background: oklch(var(--b1));
+		background: oklch(var(--b2));
 		padding: 0.5rem 0.625rem 0.375rem 0.625rem;
 		min-width: 170px;
 		min-height: 92px;
 		position: relative;
+		box-shadow: 0 1px 2px oklch(var(--bc) / 0.08);
 		transition: box-shadow 120ms ease, border-color 120ms ease;
 	}
 
 	.bracket-card--tbd {
 		border-style: dashed;
-		opacity: 0.55;
+		border-color: oklch(var(--bc) / 0.28);
+		background: oklch(var(--b1));
+		opacity: 0.7;
 	}
 
 	.bracket-card--scheduled {
-		border-color: oklch(var(--in) / 0.45);
+		border-color: oklch(var(--in) / 0.7);
 	}
 
 	.bracket-card--live {
-		border-color: oklch(var(--su) / 0.65);
-		box-shadow: 0 0 0 2px oklch(var(--su) / 0.18);
+		border-color: oklch(var(--su));
+		box-shadow: 0 0 0 3px oklch(var(--su) / 0.22), 0 1px 4px oklch(var(--su) / 0.25);
 	}
 
 	.bracket-card--completed {
-		border-color: oklch(var(--p) / 0.4);
-		background: linear-gradient(180deg, oklch(var(--b1)) 0%, oklch(var(--p) / 0.05) 100%);
+		border-color: oklch(var(--p) / 0.7);
+		background: linear-gradient(180deg, oklch(var(--b2)) 0%, oklch(var(--p) / 0.08) 100%);
 	}
 
 	.bracket-row {
