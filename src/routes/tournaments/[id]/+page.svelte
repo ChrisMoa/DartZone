@@ -124,6 +124,28 @@
 		</div>
 	{/if}
 
+	<!-- Zuschauer-Multi-Ansicht -->
+	<div class="card bg-base-100 shadow-sm" data-testid="spectator-card">
+		<div class="card-body p-4 flex-row items-center justify-between">
+			<div class="flex items-center gap-3">
+				<span class="text-2xl">📺</span>
+				<div>
+					<h2 class="font-semibold">Zuschauer-Ansicht</h2>
+					<span class="text-sm text-base-content/60">
+						Mehrere Spiele gleichzeitig in Kachel-Ansicht
+					</span>
+				</div>
+			</div>
+			<a
+				href="/tournaments/{tournament.id}/spectator"
+				class="btn btn-primary btn-sm"
+				data-testid="spectator-link"
+			>
+				Anzeigen
+			</a>
+		</div>
+	</div>
+
 	<!-- Statistik-Link -->
 	<div class="card bg-base-100 shadow-sm" data-testid="stats-card">
 		<div class="card-body p-4 flex-row items-center justify-between">
