@@ -9,10 +9,25 @@
 		[...data.scores].sort((a, b) => a.club_name.localeCompare(b.club_name))
 	);
 	let sending = $state<string | null>(null);
+	let customOpenFor = $state<string | null>(null);
+	let customValues = $state<Record<string, number>>({});
 
 	const isRunning = $derived(data.drinkingGame.status === 'running');
 
 	const QUICK_VALUES = [1, 2, 3, 5, 10] as const;
+
+	function customValueFor(clubId: string): number {
+		return customValues[clubId] ?? 7;
+	}
+
+	function setCustomValue(clubId: string, v: number) {
+		const safe = Math.max(1, Math.min(999, Math.floor(v) || 0));
+		customValues = { ...customValues, [clubId]: safe };
+	}
+
+	function toggleCustom(clubId: string) {
+		customOpenFor = customOpenFor === clubId ? null : clubId;
+	}
 
 	async function addDrinks(clubId: string, amount: number) {
 		if (sending || !isRunning) return;
@@ -90,22 +105,98 @@
 						</button>
 					</div>
 
-					<div class="grid grid-cols-5 gap-1" data-testid="quick-add-row">
-						{#each QUICK_VALUES as v}
+					<div class="flex gap-1" data-testid="quick-add-row">
+						<div class="grid grid-cols-5 gap-1 flex-1">
+							{#each QUICK_VALUES as v}
+								<button
+									type="button"
+									class="btn btn-sm {v === 1 ? 'btn-outline btn-success' : 'btn-success'}"
+									disabled={isLocked}
+									use:longPress={{
+										onpress: () => addDrinks(score.club_id, v),
+										disabled: () => isLocked
+									}}
+									data-testid="quick-add-{v}"
+								>
+									+{v}
+								</button>
+							{/each}
+						</div>
+						<button
+							type="button"
+							class="btn btn-sm btn-ghost px-2 {customOpenFor === score.club_id ? 'btn-active' : ''}"
+							onclick={() => toggleCustom(score.club_id)}
+							disabled={!isRunning}
+							data-testid="custom-toggle-btn"
+							title="Andere Anzahl"
+						>
+							#
+						</button>
+					</div>
+
+					{#if customOpenFor === score.club_id}
+						{@const v = customValueFor(score.club_id)}
+						<div
+							class="flex items-center gap-1 pt-2 border-t border-base-200"
+							data-testid="custom-input-row"
+						>
 							<button
 								type="button"
-								class="btn btn-sm {v === 1 ? 'btn-outline btn-success' : 'btn-success'}"
+								class="btn btn-sm btn-ghost px-2"
+								disabled={isLocked || v <= 1}
+								onclick={() => setCustomValue(score.club_id, v - 1)}
+								aria-label="weniger"
+							>−</button>
+							<input
+								type="number"
+								min="1"
+								max="999"
+								class="input input-bordered input-sm w-16 text-center font-bold tabular-nums"
+								value={v}
+								oninput={(e) =>
+									setCustomValue(score.club_id, Number((e.target as HTMLInputElement).value))}
+								disabled={isLocked}
+								data-testid="custom-input"
+							/>
+							<button
+								type="button"
+								class="btn btn-sm btn-ghost px-2"
+								disabled={isLocked}
+								onclick={() => setCustomValue(score.club_id, v + 1)}
+								aria-label="mehr"
+							>+</button>
+							<button
+								type="button"
+								class="btn btn-sm btn-error flex-1"
+								disabled={isLocked || score.drink_count < v}
+								use:longPress={{
+									onpress: () => {
+										addDrinks(score.club_id, -v);
+										customOpenFor = null;
+									},
+									disabled: () => isLocked || score.drink_count < v
+								}}
+								data-testid="custom-subtract-btn"
+							>
+								−{v}
+							</button>
+							<button
+								type="button"
+								class="btn btn-sm btn-success flex-1"
 								disabled={isLocked}
 								use:longPress={{
-									onpress: () => addDrinks(score.club_id, v),
+									onpress: () => {
+										addDrinks(score.club_id, v);
+										customOpenFor = null;
+									},
 									disabled: () => isLocked
 								}}
-								data-testid="quick-add-{v}"
+								data-testid="custom-add-btn"
 							>
 								+{v}
 							</button>
-						{/each}
-					</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 		{/each}
