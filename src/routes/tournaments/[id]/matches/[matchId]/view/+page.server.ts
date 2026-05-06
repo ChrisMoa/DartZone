@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types.js';
 import { error } from '@sveltejs/kit';
-import { matchRepo, tournamentRepo } from '$lib/server/db.js';
+import { matchRepo, tournamentRepo, playerRepo } from '$lib/server/db.js';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const match = await matchRepo.getById(params.matchId);
@@ -9,5 +9,10 @@ export const load: PageServerLoad = async ({ params }) => {
 	const tournament = await tournamentRepo.getById(params.id);
 	if (!tournament) throw error(404, 'Turnier nicht gefunden');
 
-	return { match, tournament };
+	const [homePlayers, awayPlayers] = await Promise.all([
+		playerRepo.getByClubId(match.home_club.id),
+		playerRepo.getByClubId(match.away_club.id)
+	]);
+
+	return { match, tournament, homePlayers, awayPlayers };
 };

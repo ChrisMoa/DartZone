@@ -71,13 +71,26 @@
 		</a>
 	</div>
 
-	<!-- Compact club + leg score header -->
-	<div class="flex items-center justify-around gap-4 px-4 py-2 bg-base-100 rounded-lg shadow-sm shrink-0" data-testid="view-legs">
-		<div class="flex items-center gap-3 flex-1 justify-end">
-			<div class="flex flex-col items-end">
-				<span class="text-base md:text-xl font-bold text-right leading-tight">{match.home_club.name}</span>
-				{#if live}
-					<span class="text-xs md:text-sm text-base-content/70">{live.home_player_name}</span>
+	<!-- Club + leg score header (with full roster) -->
+	<div class="flex items-stretch justify-around gap-4 px-4 py-3 bg-base-100 rounded-lg shadow-sm shrink-0" data-testid="view-legs">
+		<div class="flex items-center gap-4 flex-1 justify-end min-w-0">
+			<div class="flex flex-col items-end min-w-0">
+				<span class="text-2xl md:text-4xl font-bold text-right leading-tight truncate max-w-full">
+					{match.home_club.name}
+				</span>
+				{#if data.homePlayers.length > 0}
+					<div class="flex flex-wrap justify-end gap-x-2 gap-y-0.5 mt-1" data-testid="view-home-roster">
+						{#each data.homePlayers as p (p.id)}
+							{@const isActive = live?.current_player_side === 'home' && live.home_player_name === `${p.first_name} ${p.last_name}`}
+							<span
+								class="text-sm md:text-base {isActive ? 'text-primary font-semibold' : 'text-base-content/70'}"
+							>
+								{#if isActive}● {/if}{p.first_name} {p.last_name}
+							</span>
+						{/each}
+					</div>
+				{:else if live}
+					<span class="text-sm md:text-base text-base-content/70 mt-1">{live.home_player_name}</span>
 				{/if}
 			</div>
 			<ClubCrest
@@ -86,25 +99,41 @@
 				crest_url={match.home_club.crest_url}
 				club_name={match.home_club.name}
 				primary_color={match.home_club.primary_color}
-				size={48}
+				size={72}
 			/>
 		</div>
-		<div class="text-4xl md:text-6xl font-bold tabular-nums shrink-0" data-testid="view-leg-score">
-			{match.home_legs_won} : {match.away_legs_won}
+		<div class="flex flex-col items-center justify-center shrink-0">
+			<span class="text-6xl md:text-8xl font-black tabular-nums leading-none" data-testid="view-leg-score">
+				{match.home_legs_won} : {match.away_legs_won}
+			</span>
+			<span class="text-xs md:text-sm text-base-content/50 uppercase tracking-wider mt-1">Legs</span>
 		</div>
-		<div class="flex items-center gap-3 flex-1 justify-start">
+		<div class="flex items-center gap-4 flex-1 justify-start min-w-0">
 			<ClubCrest
 				club_id={match.away_club.id}
 				has_crest={match.away_club.has_crest}
 				crest_url={match.away_club.crest_url}
 				club_name={match.away_club.name}
 				primary_color={match.away_club.primary_color}
-				size={48}
+				size={72}
 			/>
-			<div class="flex flex-col items-start">
-				<span class="text-base md:text-xl font-bold text-left leading-tight">{match.away_club.name}</span>
-				{#if live}
-					<span class="text-xs md:text-sm text-base-content/70">{live.away_player_name}</span>
+			<div class="flex flex-col items-start min-w-0">
+				<span class="text-2xl md:text-4xl font-bold text-left leading-tight truncate max-w-full">
+					{match.away_club.name}
+				</span>
+				{#if data.awayPlayers.length > 0}
+					<div class="flex flex-wrap justify-start gap-x-2 gap-y-0.5 mt-1" data-testid="view-away-roster">
+						{#each data.awayPlayers as p (p.id)}
+							{@const isActive = live?.current_player_side === 'away' && live.away_player_name === `${p.first_name} ${p.last_name}`}
+							<span
+								class="text-sm md:text-base {isActive ? 'text-primary font-semibold' : 'text-base-content/70'}"
+							>
+								{#if isActive}● {/if}{p.first_name} {p.last_name}
+							</span>
+						{/each}
+					</div>
+				{:else if live}
+					<span class="text-sm md:text-base text-base-content/70 mt-1">{live.away_player_name}</span>
 				{/if}
 			</div>
 		</div>
