@@ -31,22 +31,47 @@
 	let chromeVisible = $state(true);
 	let chromeTimer: ReturnType<typeof setTimeout> | null = null;
 
-	$effect(() => {
-		if (!browser) return;
+	function loadFromStorage() {
 		const raw = localStorage.getItem(storageKey);
 		if (raw) {
 			try {
 				const saved = JSON.parse(raw) as { layout: Layout; matchIds: string[] };
 				if (saved.layout) selectedLayout = saved.layout;
 				if (Array.isArray(saved.matchIds)) selectedMatchIds = saved.matchIds;
+				return;
 			} catch {
 				/* ignore */
 			}
-		} else {
-			selectedMatchIds = data.matches
-				.filter((m: (typeof data.matches)[number]) => m.status === 'in_progress')
-				.map((m: (typeof data.matches)[number]) => m.id);
 		}
+		selectedMatchIds = data.matches
+			.filter((m: (typeof data.matches)[number]) => m.status === 'in_progress')
+			.map((m: (typeof data.matches)[number]) => m.id);
+	}
+
+	$effect(() => {
+		if (!browser) return;
+		loadFromStorage();
+
+		// Cross-tab live updates from /configure
+		function onStorage(e: StorageEvent) {
+			if (e.key !== storageKey) return;
+			loadFromStorage();
+		}
+		window.addEventListener('storage', onStorage);
+
+		// Same-origin BroadcastChannel for richer in-process signalling
+		let bc: BroadcastChannel | null = null;
+		try {
+			bc = new BroadcastChannel(storageKey);
+			bc.onmessage = () => loadFromStorage();
+		} catch {
+			/* BroadcastChannel may not be available */
+		}
+
+		return () => {
+			window.removeEventListener('storage', onStorage);
+			bc?.close();
+		};
 	});
 
 	const layoutDef = $derived(LAYOUTS.find((l) => l.id === selectedLayout) ?? LAYOUTS[2]);

@@ -47,12 +47,25 @@
 		loaded = true;
 	});
 
+	let bc: BroadcastChannel | null = null;
+	$effect(() => {
+		if (!browser) return;
+		try {
+			bc = new BroadcastChannel(storageKey);
+		} catch {
+			/* not available */
+		}
+		return () => bc?.close();
+	});
+
 	$effect(() => {
 		if (!browser || !loaded) return;
 		localStorage.setItem(
 			storageKey,
 			JSON.stringify({ layout: selectedLayout, matchIds: selectedMatchIds })
 		);
+		// Same-tab notification (storage event only fires in other tabs)
+		bc?.postMessage({ type: 'update' });
 	});
 
 	const layoutDef = $derived(LAYOUTS.find((l) => l.id === selectedLayout) ?? LAYOUTS[2]);
