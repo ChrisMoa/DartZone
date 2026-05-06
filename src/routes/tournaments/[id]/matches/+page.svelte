@@ -113,9 +113,9 @@
 			{#if matches.length === 0}
 				<p class="text-base-content/60">Noch keine Spiele geplant.</p>
 			{:else}
-				<div class="grid gap-3" data-testid="match-list">
+				<div class="grid gap-3 xl:grid-cols-2" data-testid="match-list">
 					{#each matches as match (match.id)}
-						<MatchCard {match} showPlayLink={true} tournamentId={tournament.id} />
+						<MatchCard {match} showPlayLink={true} tournamentId={tournament.id} size="lg" />
 					{/each}
 				</div>
 			{/if}
