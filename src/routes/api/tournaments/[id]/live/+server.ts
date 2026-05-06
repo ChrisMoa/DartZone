@@ -7,9 +7,10 @@ import {
 	drinkingGameRepo,
 	tournamentStatsService
 } from '$lib/server/db.js';
+import { autoFinalizeIfDone } from '$lib/server/tournament-lifecycle.js';
 
 export const GET: RequestHandler = async ({ params }) => {
-	const tournament = await tournamentRepo.getById(params.id);
+	let tournament = await tournamentRepo.getById(params.id);
 	if (!tournament) throw error(404, 'Turnier nicht gefunden');
 
 	const [standings, matches, drinkingGame] = await Promise.all([
@@ -17,6 +18,8 @@ export const GET: RequestHandler = async ({ params }) => {
 		matchRepo.getByTournamentId(params.id),
 		drinkingGameRepo.getByTournament(params.id)
 	]);
+
+	tournament = await autoFinalizeIfDone(tournament, tournamentRepo, matchRepo);
 
 	const stats = tournamentStatsService.getStats(
 		params.id,

@@ -14,6 +14,17 @@ function getNextRoundName(currentRound: string): string | null {
  * After a knockout match completes, check if all matches in the same round are done.
  * If so, generate next-round matches by pairing consecutive winners.
  */
+async function maybeFinalizeTournament(tournamentId: string) {
+	const tournament = await tournamentRepo.getById(tournamentId);
+	if (!tournament || tournament.status !== 'running') return;
+
+	const all = await matchRepo.getByTournamentId(tournamentId);
+	if (all.length === 0) return;
+	if (all.some((m) => m.status !== 'completed')) return;
+
+	await tournamentRepo.updateStatus(tournamentId, 'finished');
+}
+
 async function advanceKnockoutRound(tournamentId: string, completedMatchRound: string | null) {
 	if (!completedMatchRound) return;
 
@@ -177,6 +188,7 @@ export const actions: Actions = {
 			await standingsService.recalculate(params.id);
 			const updatedMatch = await matchRepo.getById(params.matchId);
 			await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
+			await maybeFinalizeTournament(params.id);
 		}
 
 		return { success: true, matchCompleted: update.status === 'completed' };
@@ -218,6 +230,7 @@ export const actions: Actions = {
 			await standingsService.recalculate(params.id);
 			const updatedMatch = await matchRepo.getById(params.matchId);
 			await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
+			await maybeFinalizeTournament(params.id);
 		}
 
 		return { success: true, matchCompleted: update.status === 'completed', winnerSide };
@@ -247,6 +260,7 @@ export const actions: Actions = {
 		await standingsService.recalculate(params.id);
 		const updatedMatch = await matchRepo.getById(params.matchId);
 		await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
+		await maybeFinalizeTournament(params.id);
 
 		return { success: true, matchCompleted: true };
 	}

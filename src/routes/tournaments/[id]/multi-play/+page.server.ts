@@ -10,6 +10,17 @@ function getNextRoundName(currentRound: string): string | null {
 	return ROUND_SEQUENCE[idx + 1];
 }
 
+async function maybeFinalizeTournament(tournamentId: string) {
+	const tournament = await tournamentRepo.getById(tournamentId);
+	if (!tournament || tournament.status !== 'running') return;
+
+	const all = await matchRepo.getByTournamentId(tournamentId);
+	if (all.length === 0) return;
+	if (all.some((m) => m.status !== 'completed')) return;
+
+	await tournamentRepo.updateStatus(tournamentId, 'finished');
+}
+
 async function advanceKnockoutRound(tournamentId: string, completedMatchRound: string | null) {
 	if (!completedMatchRound) return;
 
@@ -200,6 +211,7 @@ export const actions: Actions = {
 			await standingsService.recalculate(params.id);
 			const updatedMatch = await matchRepo.getById(matchId);
 			await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
+			await maybeFinalizeTournament(params.id);
 		}
 
 		return { success: true, matchId, matchCompleted: update.status === 'completed' };
@@ -244,6 +256,7 @@ export const actions: Actions = {
 			await standingsService.recalculate(params.id);
 			const updatedMatch = await matchRepo.getById(matchId);
 			await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
+			await maybeFinalizeTournament(params.id);
 		}
 
 		return { success: true, matchId, matchCompleted: update.status === 'completed', winnerSide };
@@ -273,6 +286,7 @@ export const actions: Actions = {
 		await standingsService.recalculate(params.id);
 		const updatedMatch = await matchRepo.getById(matchId);
 		await advanceKnockoutRound(params.id, updatedMatch?.round ?? null);
+		await maybeFinalizeTournament(params.id);
 
 		return { success: true, matchId, matchCompleted: true };
 	}
