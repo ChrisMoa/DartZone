@@ -14,6 +14,7 @@
 	import PlayerStatsCard from '$lib/components/scoring/PlayerStatsCard.svelte';
 	import type { PlayerStats } from '$lib/components/scoring/PlayerStatsCard.svelte';
 	import CricketScoreBoard from '$lib/components/scoring/CricketScoreBoard.svelte';
+	import { deserialize } from '$app/forms';
 	import { getContext } from 'svelte';
 	import { createGameState, type GameStore } from '$lib/stores/game.svelte.js';
 	import { createCricketGameState, type CricketGameStore } from '$lib/stores/cricket-game.svelte.js';
@@ -213,14 +214,28 @@
 				headers: { 'x-sveltekit-action': 'true' }
 			});
 
-			const result = await response.json();
-			if (result?.type === 'failure') {
-				startError = result?.data?.error ?? 'Spiel konnte nicht gestartet werden';
+			const raw = await response.text();
+			const result = deserialize(raw) as
+				| { type: 'success'; data?: { success: boolean; home_legs_won: number; away_legs_won: number } }
+				| { type: 'failure'; data?: { error?: string } }
+				| { type: 'redirect'; location: string }
+				| { type: 'error'; error: { message?: string } };
+
+			if (result.type === 'failure') {
+				startError = result.data?.error ?? 'Spiel konnte nicht gestartet werden';
+				return;
+			}
+			if (result.type === 'error') {
+				startError = result.error?.message ?? 'Server-Fehler beim Starten';
+				return;
+			}
+			if (result.type === 'redirect') {
+				window.location.href = result.location;
 				return;
 			}
 
 			// Use server-returned leg counts (handles resume case)
-			if (result?.data?.home_legs_won != null) {
+			if (result.data && result.data.home_legs_won != null) {
 				homeLegsWon = result.data.home_legs_won;
 				awayLegsWon = result.data.away_legs_won;
 				legNumber = homeLegsWon + awayLegsWon + 1;
@@ -247,7 +262,8 @@
 			pushLiveState();
 		} catch (err) {
 			console.error('Error starting game:', err);
-			startError = 'Netzwerkfehler beim Starten';
+			const msg = err instanceof Error ? err.message : String(err);
+			startError = `Netzwerkfehler beim Starten: ${msg}`;
 		} finally {
 			starting = false;
 		}
