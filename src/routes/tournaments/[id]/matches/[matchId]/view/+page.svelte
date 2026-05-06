@@ -55,10 +55,11 @@
 	}
 </script>
 
-<div class="flex flex-col gap-6 min-h-[80vh]" data-testid="view-page">
-	<div class="flex items-center gap-3 flex-wrap">
+<div class="flex flex-col h-[calc(100vh-2rem)] gap-3" data-testid="view-page">
+	<!-- Compact header -->
+	<div class="flex items-center gap-3 flex-wrap shrink-0">
 		<a href="/tournaments/{data.tournament.id}" class="btn btn-ghost btn-sm">Zurueck</a>
-		<h1 class="text-2xl font-bold flex-1">
+		<h1 class="text-lg md:text-xl font-bold flex-1">
 			{match.home_club.short_name} vs {match.away_club.short_name}
 		</h1>
 		<a
@@ -70,99 +71,125 @@
 		</a>
 	</div>
 
-	<!-- Big leg score -->
-	<div class="flex items-center justify-around gap-4 p-6 bg-base-100 rounded-lg shadow-sm" data-testid="view-legs">
-		<div class="flex flex-col items-center gap-2 flex-1">
+	<!-- Compact club + leg score header -->
+	<div class="flex items-center justify-around gap-4 px-4 py-2 bg-base-100 rounded-lg shadow-sm shrink-0" data-testid="view-legs">
+		<div class="flex items-center gap-3 flex-1 justify-end">
+			<div class="flex flex-col items-end">
+				<span class="text-base md:text-xl font-bold text-right leading-tight">{match.home_club.name}</span>
+				{#if live}
+					<span class="text-xs md:text-sm text-base-content/70">{live.home_player_name}</span>
+				{/if}
+			</div>
 			<ClubCrest
 				club_id={match.home_club.id}
 				has_crest={match.home_club.has_crest}
 				crest_url={match.home_club.crest_url}
 				club_name={match.home_club.name}
 				primary_color={match.home_club.primary_color}
-				size={64}
+				size={48}
 			/>
-			<span class="text-xl md:text-2xl font-bold text-center">{match.home_club.name}</span>
-			{#if live}
-				<span class="text-base md:text-lg text-base-content/70">{live.home_player_name}</span>
-			{/if}
 		</div>
-		<div class="text-6xl md:text-8xl font-bold tabular-nums" data-testid="view-leg-score">
+		<div class="text-4xl md:text-6xl font-bold tabular-nums shrink-0" data-testid="view-leg-score">
 			{match.home_legs_won} : {match.away_legs_won}
 		</div>
-		<div class="flex flex-col items-center gap-2 flex-1">
+		<div class="flex items-center gap-3 flex-1 justify-start">
 			<ClubCrest
 				club_id={match.away_club.id}
 				has_crest={match.away_club.has_crest}
 				crest_url={match.away_club.crest_url}
 				club_name={match.away_club.name}
 				primary_color={match.away_club.primary_color}
-				size={64}
+				size={48}
 			/>
-			<span class="text-xl md:text-2xl font-bold text-center">{match.away_club.name}</span>
-			{#if live}
-				<span class="text-base md:text-lg text-base-content/70">{live.away_player_name}</span>
-			{/if}
+			<div class="flex flex-col items-start">
+				<span class="text-base md:text-xl font-bold text-left leading-tight">{match.away_club.name}</span>
+				{#if live}
+					<span class="text-xs md:text-sm text-base-content/70">{live.away_player_name}</span>
+				{/if}
+			</div>
 		</div>
 	</div>
 
 	{#if matchCompleted}
-		<div class="card bg-success/10 border border-success/30 shadow-sm" data-testid="view-match-completed">
-			<div class="card-body text-center py-8">
-				<h2 class="text-3xl md:text-5xl font-bold">Spiel beendet</h2>
-				<p class="text-xl md:text-2xl mt-2">{winnerLabel} gewinnt!</p>
+		<div class="card bg-success/10 border border-success/30 shadow-sm flex-1" data-testid="view-match-completed">
+			<div class="card-body items-center justify-center text-center">
+				<h2 class="text-4xl md:text-7xl font-bold">Spiel beendet</h2>
+				<p class="text-2xl md:text-4xl mt-4">{winnerLabel} gewinnt!</p>
 			</div>
 		</div>
 	{:else if live && live.game_mode !== 'cricket'}
-		<!-- Big remaining points -->
-		<div class="grid grid-cols-2 gap-4">
+		<!-- Big symmetric player cards (fill remaining viewport) — average is dominant -->
+		<div class="grid grid-cols-2 gap-3 flex-1 min-h-0">
 			<div
-				class="card shadow-md transition-all {homeIsActive ? 'bg-primary/15 border-2 border-primary' : 'bg-base-100'}"
+				class="card shadow-md flex flex-col {homeIsActive ? 'bg-primary/10 ring-2 ring-primary' : 'bg-base-100'}"
 				data-testid="view-home-card"
-				class:scale-105={homeIsActive}
 			>
-				<div class="card-body items-center py-6">
-					<span class="text-sm uppercase tracking-wide text-base-content/60">Rest</span>
-					<span class="text-7xl md:text-9xl font-black tabular-nums" data-testid="view-home-remaining">
-						{live.home_remaining}
+				<div class="card-body flex flex-col items-center justify-center gap-2 py-4 px-3">
+					<div class="flex items-center gap-2 text-base md:text-lg font-medium {homeIsActive ? 'text-primary' : 'text-base-content/70'}">
+						{#if homeIsActive}
+							<span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+						{/if}
+						<span>⌀ Schnitt</span>
+					</div>
+					<span
+						class="font-black tabular-nums leading-none {homeIsActive ? 'text-primary' : 'text-base-content'}"
+						style="font-size: clamp(5rem, 22vw, 18rem);"
+						data-testid="view-home-average"
+					>
+						{live.home_average.toFixed(1)}
 					</span>
-					<span class="text-sm md:text-base text-base-content/70">
-						⌀ {live.home_average.toFixed(1)}
-					</span>
+					<div class="mt-2 flex flex-col items-center">
+						<span class="text-xs md:text-sm uppercase tracking-wide text-base-content/60">Rest</span>
+						<span class="text-3xl md:text-5xl font-bold tabular-nums text-base-content/80" data-testid="view-home-remaining">
+							{live.home_remaining}
+						</span>
+					</div>
 				</div>
 			</div>
 			<div
-				class="card shadow-md transition-all {awayIsActive ? 'bg-primary/15 border-2 border-primary' : 'bg-base-100'}"
+				class="card shadow-md flex flex-col {awayIsActive ? 'bg-primary/10 ring-2 ring-primary' : 'bg-base-100'}"
 				data-testid="view-away-card"
-				class:scale-105={awayIsActive}
 			>
-				<div class="card-body items-center py-6">
-					<span class="text-sm uppercase tracking-wide text-base-content/60">Rest</span>
-					<span class="text-7xl md:text-9xl font-black tabular-nums" data-testid="view-away-remaining">
-						{live.away_remaining}
+				<div class="card-body flex flex-col items-center justify-center gap-2 py-4 px-3">
+					<div class="flex items-center gap-2 text-base md:text-lg font-medium {awayIsActive ? 'text-primary' : 'text-base-content/70'}">
+						{#if awayIsActive}
+							<span class="inline-block w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+						{/if}
+						<span>⌀ Schnitt</span>
+					</div>
+					<span
+						class="font-black tabular-nums leading-none {awayIsActive ? 'text-primary' : 'text-base-content'}"
+						style="font-size: clamp(5rem, 22vw, 18rem);"
+						data-testid="view-away-average"
+					>
+						{live.away_average.toFixed(1)}
 					</span>
-					<span class="text-sm md:text-base text-base-content/70">
-						⌀ {live.away_average.toFixed(1)}
-					</span>
+					<div class="mt-2 flex flex-col items-center">
+						<span class="text-xs md:text-sm uppercase tracking-wide text-base-content/60">Rest</span>
+						<span class="text-3xl md:text-5xl font-bold tabular-nums text-base-content/80" data-testid="view-away-remaining">
+							{live.away_remaining}
+						</span>
+					</div>
 				</div>
 			</div>
 		</div>
 
-		<!-- Current turn / leg info -->
-		<div class="flex flex-col items-center gap-3 p-4 bg-base-100 rounded-lg shadow-sm" data-testid="view-turn-info">
-			<div class="text-base md:text-lg text-base-content/70">
+		<!-- Current turn / leg info (compact footer) -->
+		<div class="flex items-center justify-center gap-4 flex-wrap px-4 py-2 bg-base-100 rounded-lg shadow-sm shrink-0" data-testid="view-turn-info">
+			<span class="text-sm md:text-base text-base-content/70">
 				Leg {live.leg_number} &middot; Dart {live.current_dart} von 3
-			</div>
+			</span>
 			{#if live.current_turn_throws.length > 0}
-				<div class="flex items-center gap-3" data-testid="view-current-throws">
+				<div class="flex items-center gap-2" data-testid="view-current-throws">
 					{#each live.current_turn_throws as t, i (i)}
-						<div class="badge badge-lg {t.is_bust ? 'badge-error' : 'badge-neutral'} text-base md:text-lg px-4 py-3">
+						<div class="badge badge-lg {t.is_bust ? 'badge-error' : 'badge-neutral'} text-sm md:text-base">
 							{formatThrow(t)}
 						</div>
 					{/each}
 				</div>
-				<div class="text-2xl md:text-3xl font-bold">
-					Wurf-Summe: {live.current_turn_throws.reduce((s, t) => s + (t.is_bust ? 0 : t.score), 0)}
-				</div>
+				<span class="text-lg md:text-2xl font-bold">
+					Σ {live.current_turn_throws.reduce((s, t) => s + (t.is_bust ? 0 : t.score), 0)}
+				</span>
 			{/if}
 			{#if isMatchPoint}
 				<div class="badge badge-warning badge-lg animate-pulse font-semibold" data-testid="view-match-point">
@@ -171,16 +198,16 @@
 			{/if}
 		</div>
 	{:else if live && live.game_mode === 'cricket'}
-		<div class="card bg-base-100 shadow-sm">
-			<div class="card-body text-center py-8">
+		<div class="card bg-base-100 shadow-sm flex-1">
+			<div class="card-body items-center justify-center text-center">
 				<p class="text-lg text-base-content/70">
 					Cricket-Live-Ansicht bald verfuegbar. Aktueller Leg-Stand siehe oben.
 				</p>
 			</div>
 		</div>
 	{:else}
-		<div class="card bg-base-100 shadow-sm">
-			<div class="card-body text-center py-8" data-testid="view-no-live">
+		<div class="card bg-base-100 shadow-sm flex-1">
+			<div class="card-body items-center justify-center text-center" data-testid="view-no-live">
 				<p class="text-lg text-base-content/70">
 					Spiel noch nicht gestartet oder pausiert. Live-Daten erscheinen, sobald der Organisator das Spiel startet.
 				</p>
