@@ -1,0 +1,177 @@
+<script lang="ts">
+	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
+
+	let { data } = $props();
+
+	type Layout = '1x1' | '2x1' | '2x2' | '3x2' | '4x2' | '3x3';
+
+	interface LayoutDef {
+		id: Layout;
+		label: string;
+		cols: number;
+		rows: number;
+	}
+
+	const LAYOUTS: LayoutDef[] = [
+		{ id: '1x1', label: '1 (1×1)', cols: 1, rows: 1 },
+		{ id: '2x1', label: '2 (2×1)', cols: 2, rows: 1 },
+		{ id: '2x2', label: '4 (2×2)', cols: 2, rows: 2 },
+		{ id: '3x2', label: '6 (3×2)', cols: 3, rows: 2 },
+		{ id: '4x2', label: '8 (4×2)', cols: 4, rows: 2 },
+		{ id: '3x3', label: '9 (3×3)', cols: 3, rows: 3 }
+	];
+
+	const storageKey = `spectator-${data.tournament.id}`;
+
+	let selectedLayout = $state<Layout>('2x2');
+	let selectedMatchIds = $state<string[]>([]);
+	let loaded = $state(false);
+
+	$effect(() => {
+		if (!browser || loaded) return;
+		const raw = localStorage.getItem(storageKey);
+		if (raw) {
+			try {
+				const saved = JSON.parse(raw) as { layout: Layout; matchIds: string[] };
+				if (saved.layout) selectedLayout = saved.layout;
+				if (Array.isArray(saved.matchIds)) selectedMatchIds = saved.matchIds;
+			} catch {
+				/* ignore */
+			}
+		} else {
+			selectedMatchIds = data.matches
+				.filter((m: (typeof data.matches)[number]) => m.status === 'in_progress')
+				.map((m: (typeof data.matches)[number]) => m.id);
+		}
+		loaded = true;
+	});
+
+	$effect(() => {
+		if (!browser || !loaded) return;
+		localStorage.setItem(
+			storageKey,
+			JSON.stringify({ layout: selectedLayout, matchIds: selectedMatchIds })
+		);
+	});
+
+	const layoutDef = $derived(LAYOUTS.find((l) => l.id === selectedLayout) ?? LAYOUTS[2]);
+	const maxTiles = $derived(layoutDef.cols * layoutDef.rows);
+
+	function toggleMatch(id: string) {
+		if (selectedMatchIds.includes(id)) {
+			selectedMatchIds = selectedMatchIds.filter((x) => x !== id);
+		} else {
+			selectedMatchIds = [...selectedMatchIds, id];
+		}
+	}
+
+	function selectAllInProgress() {
+		selectedMatchIds = data.matches
+			.filter((m: (typeof data.matches)[number]) => m.status === 'in_progress')
+			.map((m: (typeof data.matches)[number]) => m.id);
+	}
+
+	function clearSelection() {
+		selectedMatchIds = [];
+	}
+
+	function startSpectator() {
+		goto(`/tournaments/${data.tournament.id}/spectator`);
+	}
+</script>
+
+<div class="flex flex-col gap-4 max-w-4xl mx-auto" data-testid="spectator-configure-page">
+	<div class="flex items-center gap-3 flex-wrap">
+		<a href="/tournaments/{data.tournament.id}" class="btn btn-ghost btn-sm">Zurueck</a>
+		<h1 class="text-2xl font-bold flex-1">Zuschauer-Konfiguration</h1>
+		<button
+			class="btn btn-primary"
+			onclick={startSpectator}
+			disabled={selectedMatchIds.length === 0}
+			data-testid="spectator-start-btn"
+		>
+			Zuschauer-Ansicht starten ▶
+		</button>
+	</div>
+
+	<div class="card bg-base-100 shadow-sm">
+		<div class="card-body p-4">
+			<h2 class="card-title text-lg">Layout</h2>
+			<p class="text-sm text-base-content/60 mb-2">
+				Wie viele Spiele sollen gleichzeitig angezeigt werden?
+			</p>
+			<div class="join flex-wrap" data-testid="spectator-layout-selector">
+				{#each LAYOUTS as l (l.id)}
+					<button
+						class="join-item btn btn-sm {selectedLayout === l.id ? 'btn-primary' : 'btn-outline'}"
+						onclick={() => (selectedLayout = l.id)}
+					>
+						{l.label}
+					</button>
+				{/each}
+			</div>
+		</div>
+	</div>
+
+	<div class="card bg-base-100 shadow-sm" data-testid="spectator-config">
+		<div class="card-body p-4">
+			<div class="flex items-center justify-between flex-wrap gap-2">
+				<div>
+					<h2 class="card-title text-lg">Spiele auswaehlen</h2>
+					<p class="text-sm text-base-content/60">
+						{selectedMatchIds.length} von max. {maxTiles} ausgewaehlt
+					</p>
+				</div>
+				<div class="flex gap-2">
+					<button class="btn btn-sm btn-ghost" onclick={selectAllInProgress}>
+						Alle laufenden
+					</button>
+					<button class="btn btn-sm btn-ghost" onclick={clearSelection}>
+						Leeren
+					</button>
+				</div>
+			</div>
+
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3">
+				{#each data.matches as m (m.id)}
+					{@const checked = selectedMatchIds.includes(m.id)}
+					{@const disabled = !checked && selectedMatchIds.length >= maxTiles}
+					<label
+						class="flex items-center gap-3 p-3 rounded border cursor-pointer transition-colors {checked
+							? 'border-primary bg-primary/5'
+							: 'border-base-300 hover:bg-base-200'} {disabled ? 'opacity-40 cursor-not-allowed' : ''}"
+					>
+						<input
+							type="checkbox"
+							class="checkbox checkbox-primary"
+							{checked}
+							{disabled}
+							onchange={() => toggleMatch(m.id)}
+						/>
+						<div class="flex-1 min-w-0">
+							<div class="font-medium truncate">
+								{m.home_club.name} vs {m.away_club.name}
+							</div>
+							<div class="text-xs text-base-content/60 truncate">
+								{m.home_club.short_name} vs {m.away_club.short_name}
+								{#if m.home_legs_won + m.away_legs_won > 0}
+									&middot; {m.home_legs_won}:{m.away_legs_won}
+								{/if}
+							</div>
+						</div>
+						<span
+							class="badge badge-sm shrink-0 {m.status === 'in_progress'
+								? 'badge-success'
+								: m.status === 'completed'
+									? 'badge-neutral'
+									: 'badge-ghost'}"
+						>
+							{m.status === 'in_progress' ? 'live' : m.status === 'completed' ? 'fertig' : 'geplant'}
+						</span>
+					</label>
+				{/each}
+			</div>
+		</div>
+	</div>
+</div>
