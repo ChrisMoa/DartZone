@@ -3,6 +3,24 @@ import type { DartThrow, GameState, Multiplier, SectorValue, SpecialHit } from '
 import { calcScore, isBust, isCheckout } from '$lib/utils/scoring.js';
 import { getCheckoutRoute, getCheckoutRoutes, type CheckoutRoute } from '$lib/utils/checkout.js';
 
+export interface GameSnapshot {
+	id: string;
+	match_id: string;
+	leg_number: number;
+	home_player: Player;
+	away_player: Player;
+	starting_score: number;
+	softCheckout: boolean;
+	home_remaining: number;
+	away_remaining: number;
+	current_player_id: string;
+	current_turn: number;
+	current_dart: 1 | 2 | 3;
+	throws: DartThrow[];
+	status: 'in_progress' | 'completed';
+	winner_player_id: string | null;
+}
+
 export function createGameState(config: {
 	match_id: string;
 	leg_number: number;
@@ -10,22 +28,24 @@ export function createGameState(config: {
 	away_player: Player;
 	starting_score: number;
 	softCheckout?: boolean;
+	restore?: Omit<GameSnapshot, 'match_id' | 'leg_number' | 'home_player' | 'away_player' | 'starting_score' | 'softCheckout'>;
 }) {
+	const r = config.restore;
 	let softCheckout = $state(config.softCheckout ?? false);
-	let id = $state(crypto.randomUUID());
+	let id = $state(r?.id ?? crypto.randomUUID());
 	let match_id = $state(config.match_id);
 	let leg_number = $state(config.leg_number);
 	let home_player = $state(config.home_player);
 	let away_player = $state(config.away_player);
 	let starting_score = $state(config.starting_score);
-	let home_remaining = $state(config.starting_score);
-	let away_remaining = $state(config.starting_score);
-	let current_player_id = $state(config.home_player.id);
-	let current_turn = $state(1);
-	let current_dart = $state<1 | 2 | 3>(1);
-	let throws = $state<DartThrow[]>([]);
-	let status = $state<'in_progress' | 'completed'>('in_progress');
-	let winner_player_id = $state<string | null>(null);
+	let home_remaining = $state(r?.home_remaining ?? config.starting_score);
+	let away_remaining = $state(r?.away_remaining ?? config.starting_score);
+	let current_player_id = $state(r?.current_player_id ?? config.home_player.id);
+	let current_turn = $state(r?.current_turn ?? 1);
+	let current_dart = $state<1 | 2 | 3>(r?.current_dart ?? 1);
+	let throws = $state<DartThrow[]>(r?.throws ?? []);
+	let status = $state<'in_progress' | 'completed'>(r?.status ?? 'in_progress');
+	let winner_player_id = $state<string | null>(r?.winner_player_id ?? null);
 	let lastSpecialHit = $state<SpecialHit>(null);
 
 	const isHomePlayer = $derived(current_player_id === home_player.id);
@@ -232,7 +252,26 @@ export function createGameState(config: {
 		setSoftCheckout(value: boolean) { softCheckout = value; },
 		registerThrow,
 		undoLastThrow,
-		getState
+		getState,
+		toSnapshot(): GameSnapshot {
+			return {
+				id,
+				match_id,
+				leg_number,
+				home_player,
+				away_player,
+				starting_score,
+				softCheckout,
+				home_remaining,
+				away_remaining,
+				current_player_id,
+				current_turn,
+				current_dart,
+				throws: [...throws],
+				status,
+				winner_player_id
+			};
+		}
 	};
 }
 

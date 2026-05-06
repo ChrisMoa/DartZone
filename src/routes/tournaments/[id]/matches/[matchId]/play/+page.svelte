@@ -16,7 +16,7 @@
 	import CricketScoreBoard from '$lib/components/scoring/CricketScoreBoard.svelte';
 	import { deserialize } from '$app/forms';
 	import { getContext } from 'svelte';
-	import { createGameState, type GameStore } from '$lib/stores/game.svelte.js';
+	import { createGameState, type GameStore, type GameSnapshot } from '$lib/stores/game.svelte.js';
 	import { createCricketGameState, type CricketGameStore } from '$lib/stores/cricket-game.svelte.js';
 	import { createAnimationStore } from '$lib/stores/animation.svelte.js';
 	import type { SettingsStore } from '$lib/stores/settings.svelte.js';
@@ -27,6 +27,33 @@
 	const settingsStore = getContext<SettingsStore>('settings');
 
 	let { data } = $props();
+
+	const persistKey = `dartzone-play-${data.match.id}`;
+
+	function loadSnapshot(): GameSnapshot | null {
+		if (!browser) return null;
+		try {
+			const raw = localStorage.getItem(persistKey);
+			if (!raw) return null;
+			return JSON.parse(raw) as GameSnapshot;
+		} catch {
+			return null;
+		}
+	}
+
+	function clearSnapshot() {
+		if (!browser) return;
+		localStorage.removeItem(persistKey);
+	}
+
+	function persistSnapshot(g: GameStore) {
+		if (!browser) return;
+		try {
+			localStorage.setItem(persistKey, JSON.stringify(g.toSnapshot()));
+		} catch {
+			/* quota exceeded etc. */
+		}
+	}
 
 	let homePlayerIndex = $state(0);
 	let awayPlayerIndex = $state(0);
@@ -179,6 +206,72 @@
 		}
 	});
 
+	// On mount: try to restore in-progress game from localStorage
+	$effect(() => {
+		if (!browser) return;
+		if (matchStarted || matchCompleted || isCricket) return;
+		if (data.match.status !== 'in_progress') return;
+
+		const snap = loadSnapshot();
+		if (!snap) return;
+		// Only restore if snapshot leg matches current leg number on server
+		const expectedLeg = data.match.home_legs_won + data.match.away_legs_won + 1;
+		if (snap.leg_number !== expectedLeg) {
+			clearSnapshot();
+			return;
+		}
+
+		// Resolve player indices so player selectors stay in sync
+		const hi = data.homePlayers.findIndex((p: typeof data.homePlayers[number]) => p.id === snap.home_player.id);
+		const ai = data.awayPlayers.findIndex((p: typeof data.awayPlayers[number]) => p.id === snap.away_player.id);
+		if (hi >= 0) homePlayerIndex = hi;
+		if (ai >= 0) awayPlayerIndex = ai;
+
+		game = createGameState({
+			match_id: data.match.id,
+			leg_number: snap.leg_number,
+			home_player: snap.home_player,
+			away_player: snap.away_player,
+			starting_score: snap.starting_score,
+			softCheckout: snap.softCheckout,
+			restore: {
+				id: snap.id,
+				home_remaining: snap.home_remaining,
+				away_remaining: snap.away_remaining,
+				current_player_id: snap.current_player_id,
+				current_turn: snap.current_turn,
+				current_dart: snap.current_dart,
+				throws: snap.throws,
+				status: snap.status,
+				winner_player_id: snap.winner_player_id
+			}
+		});
+		softCheckout = snap.softCheckout;
+		legNumber = snap.leg_number;
+		matchStarted = true;
+		pushLiveState();
+	});
+
+	// Persist game snapshot whenever throws change
+	$effect(() => {
+		if (!game || !matchStarted) return;
+		// Reactive deps — touch state we want to track
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		game.throws.length;
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		game.current_dart;
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		game.current_turn;
+		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+		game.status;
+		persistSnapshot(game);
+	});
+
+	// Clear persisted snapshot once the whole match is over
+	$effect(() => {
+		if (matchCompleted) clearSnapshot();
+	});
+
 	const startingScore = $derived(
 		data.tournament.game_mode === '301' ? 301 : data.tournament.game_mode === 'cricket' ? 0 : 501
 	);
@@ -301,6 +394,7 @@
 			data.match.home_legs_won = 0;
 			data.match.away_legs_won = 0;
 			clearLiveState();
+			clearSnapshot();
 		} catch (err) {
 			console.error('Error resetting match:', err);
 			startError = 'Netzwerkfehler beim Zuruecksetzen';
