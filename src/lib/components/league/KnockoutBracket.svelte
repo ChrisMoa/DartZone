@@ -247,7 +247,7 @@
 		font-weight: 700;
 		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		color: oklch(var(--bc) / 0.55);
+		color: color-mix(in oklch, var(--color-base-content) 55%, transparent);
 		padding-bottom: 0.75rem;
 	}
 
@@ -265,7 +265,7 @@
 		flex: 1;
 	}
 
-	/* Connector geometry — connectors are fixed width and stretch vertically */
+	/* Connector geometry */
 	.bracket-conn-in,
 	.bracket-conn-out {
 		width: 18px;
@@ -281,10 +281,9 @@
 		top: 50%;
 		width: 100%;
 		height: 0;
-		border-top: 2px solid oklch(var(--bc) / 0.35);
+		border-top: 2px solid color-mix(in oklch, var(--color-base-content) 35%, transparent);
 	}
 
-	/* outgoing horizontal stub */
 	.bracket-conn-out::before {
 		content: '';
 		position: absolute;
@@ -292,17 +291,16 @@
 		top: 50%;
 		width: 100%;
 		height: 0;
-		border-top: 2px solid oklch(var(--bc) / 0.35);
+		border-top: 2px solid color-mix(in oklch, var(--color-base-content) 35%, transparent);
 	}
 
-	/* outgoing vertical stub joins pair into next round */
 	.bracket-conn-out--top::after,
 	.bracket-conn-out--bot::after {
 		content: '';
 		position: absolute;
 		right: 0;
 		width: 0;
-		border-right: 2px solid oklch(var(--bc) / 0.35);
+		border-right: 2px solid color-mix(in oklch, var(--color-base-content) 35%, transparent);
 	}
 
 	.bracket-conn-out--top::after {
@@ -315,54 +313,59 @@
 		bottom: 50%;
 	}
 
-	/* Winner-line accent: the connector leaving a completed match shines accent */
 	.bracket-conn-out--winner::before,
 	.bracket-conn-in--winner::before {
-		border-top-color: oklch(var(--p) / 0.7);
+		border-top-color: color-mix(in oklch, var(--color-primary) 75%, transparent);
 		border-top-width: 2.5px;
 	}
 
 	.bracket-conn-out--winner::after {
-		border-right-color: oklch(var(--p) / 0.7);
+		border-right-color: color-mix(in oklch, var(--color-primary) 75%, transparent);
 		border-right-width: 2.5px;
 	}
 
-	/* The match card — fixed size rectangle, same shape for TBD/scheduled/live/completed */
+	/* The match card */
 	.bracket-card {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
 		gap: 0.125rem;
-		border: 2px solid oklch(var(--bc) / 0.35);
+		border: 2px solid color-mix(in oklch, var(--color-base-content) 40%, transparent);
 		border-radius: 0.625rem;
-		background: oklch(var(--b2));
+		background: var(--color-base-100);
 		padding: 0.5rem 0.625rem 0.375rem 0.625rem;
 		min-width: 170px;
 		min-height: 92px;
 		position: relative;
-		box-shadow: 0 1px 2px oklch(var(--bc) / 0.08);
+		box-shadow: 0 1px 3px color-mix(in oklch, var(--color-base-content) 12%, transparent);
 		transition: box-shadow 120ms ease, border-color 120ms ease;
 	}
 
 	.bracket-card--tbd {
 		border-style: dashed;
-		border-color: oklch(var(--bc) / 0.28);
-		background: oklch(var(--b1));
-		opacity: 0.7;
+		border-color: color-mix(in oklch, var(--color-base-content) 25%, transparent);
+		background: var(--color-base-200);
+		opacity: 0.75;
 	}
 
 	.bracket-card--scheduled {
-		border-color: oklch(var(--in) / 0.7);
+		border-color: color-mix(in oklch, var(--color-info) 70%, transparent);
 	}
 
 	.bracket-card--live {
-		border-color: oklch(var(--su));
-		box-shadow: 0 0 0 3px oklch(var(--su) / 0.22), 0 1px 4px oklch(var(--su) / 0.25);
+		border-color: var(--color-success);
+		box-shadow:
+			0 0 0 3px color-mix(in oklch, var(--color-success) 22%, transparent),
+			0 1px 4px color-mix(in oklch, var(--color-success) 30%, transparent);
 	}
 
 	.bracket-card--completed {
-		border-color: oklch(var(--p) / 0.7);
-		background: linear-gradient(180deg, oklch(var(--b2)) 0%, oklch(var(--p) / 0.08) 100%);
+		border-color: color-mix(in oklch, var(--color-primary) 70%, transparent);
+		background: linear-gradient(
+			180deg,
+			var(--color-base-100) 0%,
+			color-mix(in oklch, var(--color-primary) 10%, var(--color-base-100)) 100%
+		);
 	}
 
 	.bracket-row {
@@ -376,17 +379,17 @@
 
 	.bracket-row--winner {
 		font-weight: 800;
-		color: oklch(var(--pc));
-		background: oklch(var(--p) / 0.85);
-		box-shadow: inset 0 0 0 1px oklch(var(--p));
+		color: var(--color-primary-content);
+		background: var(--color-primary);
+		box-shadow: inset 0 0 0 1px var(--color-primary);
 	}
 
 	.bracket-row--loser {
-		color: oklch(var(--bc) / 0.5);
+		color: color-mix(in oklch, var(--color-base-content) 50%, transparent);
 	}
 
 	.bracket-row--tbd {
-		color: oklch(var(--bc) / 0.35);
+		color: color-mix(in oklch, var(--color-base-content) 35%, transparent);
 		min-height: 1.875rem;
 	}
 
@@ -416,7 +419,7 @@
 		font-size: 0.6rem;
 		font-weight: 600;
 		letter-spacing: 0.15em;
-		color: oklch(var(--bc) / 0.35);
+		color: color-mix(in oklch, var(--color-base-content) 35%, transparent);
 		text-transform: uppercase;
 	}
 
@@ -431,17 +434,17 @@
 		letter-spacing: 0.05em;
 		text-transform: uppercase;
 		padding: 0.125rem 0;
-		border-top: 1px dashed oklch(var(--bc) / 0.1);
+		border-top: 1px dashed color-mix(in oklch, var(--color-base-content) 12%, transparent);
 		margin-top: 0.125rem;
 		text-decoration: none;
 	}
 
 	.bracket-foot--live {
-		color: oklch(var(--su));
+		color: var(--color-success);
 	}
 
 	.bracket-foot--scheduled {
-		color: oklch(var(--in));
+		color: var(--color-info);
 	}
 
 	.bracket-foot--scheduled:hover {
@@ -449,31 +452,31 @@
 	}
 
 	.bracket-foot--done {
-		color: oklch(var(--p) / 0.7);
+		color: color-mix(in oklch, var(--color-primary) 80%, transparent);
 	}
 
 	.bracket-foot--tbd {
-		color: oklch(var(--bc) / 0.3);
+		color: color-mix(in oklch, var(--color-base-content) 30%, transparent);
 	}
 
 	.bracket-live-dot {
 		width: 0.5rem;
 		height: 0.5rem;
 		border-radius: 9999px;
-		background: oklch(var(--su));
-		box-shadow: 0 0 0 0 oklch(var(--su) / 0.7);
+		background: var(--color-success);
+		box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-success) 70%, transparent);
 		animation: bracket-pulse 1.5s infinite;
 	}
 
 	@keyframes bracket-pulse {
 		0% {
-			box-shadow: 0 0 0 0 oklch(var(--su) / 0.7);
+			box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-success) 70%, transparent);
 		}
 		70% {
-			box-shadow: 0 0 0 6px oklch(var(--su) / 0);
+			box-shadow: 0 0 0 6px color-mix(in oklch, var(--color-success) 0%, transparent);
 		}
 		100% {
-			box-shadow: 0 0 0 0 oklch(var(--su) / 0);
+			box-shadow: 0 0 0 0 color-mix(in oklch, var(--color-success) 0%, transparent);
 		}
 	}
 
@@ -484,20 +487,24 @@
 		gap: 0.5rem;
 		padding: 1rem 0.75rem;
 		border-radius: 0.75rem;
-		background: linear-gradient(180deg, oklch(var(--p) / 0.18) 0%, oklch(var(--p) / 0.06) 100%);
-		border: 1.5px solid oklch(var(--p) / 0.5);
+		background: linear-gradient(
+			180deg,
+			color-mix(in oklch, var(--color-primary) 20%, var(--color-base-100)) 0%,
+			color-mix(in oklch, var(--color-primary) 8%, var(--color-base-100)) 100%
+		);
+		border: 1.5px solid color-mix(in oklch, var(--color-primary) 55%, transparent);
 		flex: 1;
 	}
 
 	.bracket-trophy-icon {
 		font-size: 1.75rem;
-		filter: drop-shadow(0 0 8px oklch(var(--p) / 0.4));
+		filter: drop-shadow(0 0 8px color-mix(in oklch, var(--color-primary) 40%, transparent));
 	}
 
 	.bracket-trophy-name {
 		font-weight: 700;
 		font-size: 0.95rem;
 		text-align: center;
-		color: oklch(var(--bc));
+		color: var(--color-base-content);
 	}
 </style>
