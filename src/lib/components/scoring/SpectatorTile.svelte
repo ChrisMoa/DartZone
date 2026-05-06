@@ -61,6 +61,13 @@
 	.spectator-tile-container {
 		container-type: inline-size;
 	}
+	/* Force ClubCrest's hardcoded width/height to fit the wrapper */
+	.crest-fit :global(svg),
+	.crest-fit :global(img) {
+		width: 100% !important;
+		height: 100% !important;
+		display: block;
+	}
 </style>
 
 <div
@@ -93,7 +100,7 @@
 					{/if}
 				</div>
 				<div
-					class="shrink-0"
+					class="shrink-0 crest-fit"
 					style="width: clamp(28px, 6cqw, 96px); height: clamp(28px, 6cqw, 96px);"
 				>
 					<ClubCrest
@@ -114,7 +121,7 @@
 			</div>
 			<div class="flex items-center gap-2 flex-1 min-w-0 justify-start">
 				<div
-					class="shrink-0"
+					class="shrink-0 crest-fit"
 					style="width: clamp(28px, 6cqw, 96px); height: clamp(28px, 6cqw, 96px);"
 				>
 					<ClubCrest

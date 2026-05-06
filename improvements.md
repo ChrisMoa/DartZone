@@ -1,5 +1,5 @@
-- video mit einblenden
 - wer spielt gegen wen -> Ansicht von den untershiedlichen Spielen in der Liste (möglichst weit ausfüllen)
 - 2 Spieler Anzeigen (aktueller bug)
 - Full-screen von den Spielen (nur noch die Punkte sichtbar, Schnitt weiter hervorheben -> wichtiger als verbleibende Punkte) 
 - Tilix-ansicht für die Spiele (flexibel einstellen welche Spiele gleichzeitig dargestellt werden wenn in Zuschaueransicht)
+- Trinkwertung -> Top 4 und restlichen 

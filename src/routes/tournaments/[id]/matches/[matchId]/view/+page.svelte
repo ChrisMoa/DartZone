@@ -97,7 +97,7 @@
 					<span class="text-base md:text-xl text-base-content/70 mt-2">{live.home_player_name}</span>
 				{/if}
 			</div>
-			<div class="shrink-0" style="width: clamp(96px, 14vw, 240px); height: clamp(96px, 14vw, 240px);">
+			<div class="shrink-0 crest-fit" style="width: clamp(96px, 14vw, 240px); height: clamp(96px, 14vw, 240px);">
 				<ClubCrest
 					club_id={match.home_club.id}
 					has_crest={match.home_club.has_crest}
@@ -119,7 +119,7 @@
 			<span class="text-sm md:text-lg text-base-content/50 uppercase tracking-wider mt-2">Legs</span>
 		</div>
 		<div class="flex items-center gap-5 md:gap-7 flex-1 justify-start min-w-0">
-			<div class="shrink-0" style="width: clamp(96px, 14vw, 240px); height: clamp(96px, 14vw, 240px);">
+			<div class="shrink-0 crest-fit" style="width: clamp(96px, 14vw, 240px); height: clamp(96px, 14vw, 240px);">
 				<ClubCrest
 					club_id={match.away_club.id}
 					has_crest={match.away_club.has_crest}
@@ -260,3 +260,12 @@
 		</div>
 	{/if}
 </div>
+
+<style>
+	.crest-fit :global(svg),
+	.crest-fit :global(img) {
+		width: 100% !important;
+		height: 100% !important;
+		display: block;
+	}
+</style>
