@@ -2,6 +2,7 @@ import type { Player } from '$lib/types/club.js';
 import type { DartThrow, GameState, Multiplier, SectorValue, SpecialHit } from '$lib/types/game.js';
 import { calcScore, isBust, isCheckout } from '$lib/utils/scoring.js';
 import { getCheckoutRoute, getCheckoutRoutes, type CheckoutRoute } from '$lib/utils/checkout.js';
+import { safeRandomUUID } from '$lib/utils/uuid.js';
 
 export interface GameSnapshot {
 	id: string;
@@ -32,7 +33,7 @@ export function createGameState(config: {
 }) {
 	const r = config.restore;
 	let softCheckout = $state(config.softCheckout ?? false);
-	let id = $state(r?.id ?? crypto.randomUUID());
+	let id = $state(r?.id ?? safeRandomUUID());
 	let match_id = $state(config.match_id);
 	let leg_number = $state(config.leg_number);
 	let home_player = $state(config.home_player);
@@ -96,7 +97,7 @@ export function createGameState(config: {
 		const newRemaining = checkout && softCheckout ? 0 : remaining - score;
 
 		const dartThrow: DartThrow = {
-			id: crypto.randomUUID(),
+			id: safeRandomUUID(),
 			game_id: id,
 			player_id: current_player_id,
 			turn_number: current_turn,

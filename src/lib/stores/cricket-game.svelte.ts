@@ -2,6 +2,7 @@ import type { Player } from '$lib/types/club.js';
 import type { CricketMarks, CricketPlayerState, DartThrow, Multiplier, SectorValue, SpecialHit } from '$lib/types/game.js';
 import { CRICKET_SEGMENTS } from '$lib/types/game.js';
 import { calcScore, calcCricketThrow, createEmptyCricketMarks, hasClosedAll, isCricketGameOver } from '$lib/utils/scoring.js';
+import { safeRandomUUID } from '$lib/utils/uuid.js';
 
 export function createCricketGameState(config: {
 	match_id: string;
@@ -9,7 +10,7 @@ export function createCricketGameState(config: {
 	home_player: Player;
 	away_player: Player;
 }) {
-	let id = $state(crypto.randomUUID());
+	let id = $state(safeRandomUUID());
 	let match_id = $state(config.match_id);
 	let leg_number = $state(config.leg_number);
 	let home_player = $state(config.home_player);
@@ -51,7 +52,7 @@ export function createCricketGameState(config: {
 		const result = calcCricketThrow(sector, multiplier, throwerMarks, opponentMarks);
 
 		const dartThrow: DartThrow = {
-			id: crypto.randomUUID(),
+			id: safeRandomUUID(),
 			game_id: id,
 			player_id: current_player_id,
 			turn_number: current_turn,

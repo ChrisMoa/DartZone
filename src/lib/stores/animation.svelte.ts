@@ -1,4 +1,5 @@
 import type { SpecialHit } from '$lib/types/game.js';
+import { safeRandomUUID } from '$lib/utils/uuid.js';
 
 export interface AnimationEvent {
 	id: string;
@@ -17,7 +18,7 @@ export function createAnimationStore() {
 		if (!type || isPlaying) return;
 
 		currentEvent = {
-			id: crypto.randomUUID(),
+			id: safeRandomUUID(),
 			type,
 			timestamp: Date.now()
 		};
