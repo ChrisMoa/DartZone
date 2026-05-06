@@ -2,9 +2,7 @@
 	import { onMount } from 'svelte';
 	import LeagueTable from '$lib/components/league/LeagueTable.svelte';
 	import KnockoutBracket from '$lib/components/league/KnockoutBracket.svelte';
-	import TournamentStats from '$lib/components/league/TournamentStats.svelte';
 	import type { TournamentStatus, Tournament, Match, Standing, DrinkingGame } from '$lib/types/league.js';
-	import type { TournamentStats as TStats } from '$lib/server/tournament-stats.js';
 
 	let { data } = $props();
 
@@ -12,14 +10,12 @@
 	let standings = $state<Standing[]>(data.standings);
 	let matches = $state<Match[]>(data.matches);
 	let drinkingGame = $state<DrinkingGame | null>(data.drinkingGame);
-	let stats = $state<TStats>(data.stats);
 
 	$effect(() => {
 		tournament = data.tournament;
 		standings = data.standings;
 		matches = data.matches;
 		drinkingGame = data.drinkingGame;
-		stats = data.stats;
 	});
 
 	const formatLabel = $derived(
@@ -42,7 +38,6 @@
 				standings = result.standings;
 				matches = result.matches;
 				drinkingGame = result.drinkingGame;
-				if (result.stats) stats = result.stats;
 			}
 		} catch {
 			// ignore network errors during polling
@@ -129,8 +124,27 @@
 		</div>
 	{/if}
 
-	<!-- Statistiken -->
-	<TournamentStats {stats} />
+	<!-- Statistik-Link -->
+	<div class="card bg-base-100 shadow-sm" data-testid="stats-card">
+		<div class="card-body p-4 flex-row items-center justify-between">
+			<div class="flex items-center gap-3">
+				<span class="text-2xl">📊</span>
+				<div>
+					<h2 class="font-semibold">Statistik</h2>
+					<span class="text-sm text-base-content/60">
+						{tournament.track_players ? 'Spielerwerte' : 'Teamwerte'} &middot; Schnitt, 180er, Finishes
+					</span>
+				</div>
+			</div>
+			<a
+				href="/tournaments/{tournament.id}/stats"
+				class="btn btn-primary btn-sm"
+				data-testid="stats-link"
+			>
+				Anzeigen
+			</a>
+		</div>
+	</div>
 
 	<!-- Trinkwertung -->
 	{#if drinkingGame}

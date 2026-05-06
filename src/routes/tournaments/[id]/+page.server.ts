@@ -4,8 +4,7 @@ import {
 	tournamentRepo,
 	matchRepo,
 	standingsService,
-	drinkingGameRepo,
-	tournamentStatsService
+	drinkingGameRepo
 } from '$lib/server/db.js';
 import { autoFinalizeIfDone } from '$lib/server/tournament-lifecycle.js';
 
@@ -21,10 +20,5 @@ export const load: PageServerLoad = async ({ params }) => {
 
 	tournament = await autoFinalizeIfDone(tournament, tournamentRepo, matchRepo);
 
-	const stats = tournamentStatsService.getStats(
-		params.id,
-		tournament.track_players ? 'player' : 'team'
-	);
-
-	return { tournament, standings, matches, drinkingGame, stats };
+	return { tournament, standings, matches, drinkingGame };
 };
