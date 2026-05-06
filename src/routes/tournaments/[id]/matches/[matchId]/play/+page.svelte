@@ -42,6 +42,7 @@
 	let game = $state<GameStore | null>(null);
 	let cricketGame = $state<CricketGameStore | null>(null);
 	const isCricket = $derived(data.tournament.game_mode === 'cricket');
+	const trackPlayers = $derived(data.tournament.track_players);
 	// Unified accessor for the active game (either standard or cricket)
 	const activeGame = $derived(isCricket ? cricketGame : game);
 	const animations = createAnimationStore();
@@ -656,24 +657,26 @@
 				{#if startError}
 					<div class="alert alert-error text-sm mt-2">{startError}</div>
 				{/if}
-				<div class="grid grid-cols-2 gap-4 mt-4">
-					<div class="form-control">
-						<label class="label text-sm" for="resume-home-player">Heim</label>
-						<select id="resume-home-player" class="select select-bordered select-sm" bind:value={homePlayerIndex}>
-							{#each data.homePlayers as player, i (player.id)}
-								<option value={i}>{player.first_name} {player.last_name}</option>
-							{/each}
-						</select>
+				{#if trackPlayers}
+					<div class="grid grid-cols-2 gap-4 mt-4">
+						<div class="form-control">
+							<label class="label text-sm" for="resume-home-player">Heim</label>
+							<select id="resume-home-player" class="select select-bordered select-sm" bind:value={homePlayerIndex}>
+								{#each data.homePlayers as player, i (player.id)}
+									<option value={i}>{player.first_name} {player.last_name}</option>
+								{/each}
+							</select>
+						</div>
+						<div class="form-control">
+							<label class="label text-sm" for="resume-away-player">Gast</label>
+							<select id="resume-away-player" class="select select-bordered select-sm" bind:value={awayPlayerIndex}>
+								{#each data.awayPlayers as player, i (player.id)}
+									<option value={i}>{player.first_name} {player.last_name}</option>
+								{/each}
+							</select>
+						</div>
 					</div>
-					<div class="form-control">
-						<label class="label text-sm" for="resume-away-player">Gast</label>
-						<select id="resume-away-player" class="select select-bordered select-sm" bind:value={awayPlayerIndex}>
-							{#each data.awayPlayers as player, i (player.id)}
-								<option value={i}>{player.first_name} {player.last_name}</option>
-							{/each}
-						</select>
-					</div>
-				</div>
+				{/if}
 				<div class="flex gap-3 mt-4 justify-center">
 					<button
 						class="btn btn-primary"
@@ -704,45 +707,53 @@
 		<!-- Player Selection -->
 		<div class="card bg-base-100 shadow-sm" data-testid="player-selection">
 			<div class="card-body">
-				<h2 class="card-title">Spieler waehlen</h2>
-				<div class="grid grid-cols-2 gap-4">
-					<div class="form-control">
-						<label class="label text-sm" for="home-player">Heim</label>
-						<select id="home-player" class="select select-bordered" bind:value={homePlayerIndex} data-testid="home-player-select">
-							{#each data.homePlayers as player, i (player.id)}
-								<option value={i}>{playerLabel(player, null)}</option>
-							{/each}
-						</select>
-						{#if data.homePlayers[homePlayerIndex]}
-							<div class="mt-2">
-								<PlayerStatsCard
-									player={data.homePlayers[homePlayerIndex]}
-									clubName={data.match.home_club.name}
-									stats={homeStats}
-									loading={homeStatsLoading}
-								/>
-							</div>
-						{/if}
+				<h2 class="card-title">{trackPlayers ? 'Spieler waehlen' : 'Bereit zum Start'}</h2>
+				{#if trackPlayers}
+					<div class="grid grid-cols-2 gap-4">
+						<div class="form-control">
+							<label class="label text-sm" for="home-player">Heim</label>
+							<select id="home-player" class="select select-bordered" bind:value={homePlayerIndex} data-testid="home-player-select">
+								{#each data.homePlayers as player, i (player.id)}
+									<option value={i}>{playerLabel(player, null)}</option>
+								{/each}
+							</select>
+							{#if data.homePlayers[homePlayerIndex]}
+								<div class="mt-2">
+									<PlayerStatsCard
+										player={data.homePlayers[homePlayerIndex]}
+										clubName={data.match.home_club.name}
+										stats={homeStats}
+										loading={homeStatsLoading}
+									/>
+								</div>
+							{/if}
+						</div>
+						<div class="form-control">
+							<label class="label text-sm" for="away-player">Gast</label>
+							<select id="away-player" class="select select-bordered" bind:value={awayPlayerIndex} data-testid="away-player-select">
+								{#each data.awayPlayers as player, i (player.id)}
+									<option value={i}>{playerLabel(player, null)}</option>
+								{/each}
+							</select>
+							{#if data.awayPlayers[awayPlayerIndex]}
+								<div class="mt-2">
+									<PlayerStatsCard
+										player={data.awayPlayers[awayPlayerIndex]}
+										clubName={data.match.away_club.name}
+										stats={awayStats}
+										loading={awayStatsLoading}
+									/>
+								</div>
+							{/if}
+						</div>
 					</div>
-					<div class="form-control">
-						<label class="label text-sm" for="away-player">Gast</label>
-						<select id="away-player" class="select select-bordered" bind:value={awayPlayerIndex} data-testid="away-player-select">
-							{#each data.awayPlayers as player, i (player.id)}
-								<option value={i}>{playerLabel(player, null)}</option>
-							{/each}
-						</select>
-						{#if data.awayPlayers[awayPlayerIndex]}
-							<div class="mt-2">
-								<PlayerStatsCard
-									player={data.awayPlayers[awayPlayerIndex]}
-									clubName={data.match.away_club.name}
-									stats={awayStats}
-									loading={awayStatsLoading}
-								/>
-							</div>
-						{/if}
-					</div>
-				</div>
+				{:else}
+					<p class="text-base-content/70 text-sm">
+						Team-Modus: das gesamte Team von <strong>{data.match.home_club.name}</strong>
+						spielt gegen <strong>{data.match.away_club.name}</strong>.
+						Spielerstatistiken werden nicht einzeln gefuehrt.
+					</p>
+				{/if}
 				{#if !isCricket}
 					<div class="form-control mt-4">
 						<label class="label cursor-pointer justify-start gap-3">
@@ -779,7 +790,11 @@
 		{#if isCricket && cricketGame}
 			<CricketScoreBoard game={cricketGame} />
 		{:else if game}
-			<ScoreBoard {game} />
+			<ScoreBoard
+				{game}
+				homeLabel={trackPlayers ? undefined : data.match.home_club.name}
+				awayLabel={trackPlayers ? undefined : data.match.away_club.name}
+			/>
 		{/if}
 
 		<TurnIndicator game={g} />

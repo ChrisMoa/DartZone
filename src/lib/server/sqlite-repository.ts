@@ -221,7 +221,7 @@ export class SqlitePlayerRepository implements PlayerRepository {
 
 const TOURNAMENT_COLUMNS = `id, name, game_mode, format, legs_per_set, sets_per_match,
 	start_date, end_date, status, organizer_name, organizer_contact, organizer_note,
-	(organizer_logo IS NOT NULL) as has_organizer_logo`;
+	track_players, (organizer_logo IS NOT NULL) as has_organizer_logo`;
 
 interface TournamentRow {
 	id: string;
@@ -236,6 +236,7 @@ interface TournamentRow {
 	organizer_name: string | null;
 	organizer_contact: string | null;
 	organizer_note: string | null;
+	track_players: number;
 	has_organizer_logo: number;
 }
 
@@ -256,7 +257,8 @@ export class SqliteTournamentRepository implements TournamentRepository {
 			organizer_name: row.organizer_name,
 			has_organizer_logo: row.has_organizer_logo === 1,
 			organizer_contact: row.organizer_contact,
-			organizer_note: row.organizer_note
+			organizer_note: row.organizer_note,
+			track_players: row.track_players === 1
 		};
 	}
 
@@ -281,8 +283,8 @@ export class SqliteTournamentRepository implements TournamentRepository {
 		const id = generateId();
 		this.db
 			.prepare(
-				`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, status, organizer_name, organizer_contact, organizer_note)
-				 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @status, @organizer_name, @organizer_contact, @organizer_note)`
+				`INSERT INTO tournaments (id, name, game_mode, format, legs_per_set, sets_per_match, start_date, end_date, status, organizer_name, organizer_contact, organizer_note, track_players)
+				 VALUES (@id, @name, @game_mode, @format, @legs_per_set, @sets_per_match, @start_date, @end_date, @status, @organizer_name, @organizer_contact, @organizer_note, @track_players)`
 			)
 			.run({
 				id,
@@ -296,7 +298,8 @@ export class SqliteTournamentRepository implements TournamentRepository {
 				status: data.status,
 				organizer_name: data.organizer_name ?? null,
 				organizer_contact: data.organizer_contact ?? null,
-				organizer_note: data.organizer_note ?? null
+				organizer_note: data.organizer_note ?? null,
+				track_players: data.track_players ? 1 : 0
 			});
 		return (await this.getById(id))!;
 	}
@@ -311,14 +314,16 @@ export class SqliteTournamentRepository implements TournamentRepository {
 				 legs_per_set = @legs_per_set, sets_per_match = @sets_per_match,
 				 start_date = @start_date, end_date = @end_date,
 				 status = @status, organizer_name = @organizer_name,
-				 organizer_contact = @organizer_contact, organizer_note = @organizer_note
+				 organizer_contact = @organizer_contact, organizer_note = @organizer_note,
+				 track_players = @track_players
 				 WHERE id = @id`
 			)
 			.run({
 				...updated,
 				organizer_name: updated.organizer_name ?? null,
 				organizer_contact: updated.organizer_contact ?? null,
-				organizer_note: updated.organizer_note ?? null
+				organizer_note: updated.organizer_note ?? null,
+				track_players: updated.track_players ? 1 : 0
 			});
 		return this.getById(id);
 	}

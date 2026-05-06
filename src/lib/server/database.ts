@@ -38,7 +38,8 @@ function runMigrations(database: Database.Database): void {
 		['organizer_logo_mime', 'ALTER TABLE tournaments ADD COLUMN organizer_logo_mime TEXT'],
 		['organizer_contact', 'ALTER TABLE tournaments ADD COLUMN organizer_contact TEXT'],
 		['organizer_note', 'ALTER TABLE tournaments ADD COLUMN organizer_note TEXT'],
-		['status', 'ALTER TABLE tournaments ADD COLUMN status TEXT NOT NULL DEFAULT \'planned\'']
+		['status', 'ALTER TABLE tournaments ADD COLUMN status TEXT NOT NULL DEFAULT \'planned\''],
+		['track_players', 'ALTER TABLE tournaments ADD COLUMN track_players INTEGER NOT NULL DEFAULT 0']
 	];
 
 	for (const [col, sql] of migrations) {

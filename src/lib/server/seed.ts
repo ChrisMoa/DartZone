@@ -74,7 +74,8 @@ export const seedTournaments: Tournament[] = [
 		organizer_name: null,
 		has_organizer_logo: false,
 		organizer_contact: null,
-		organizer_note: null
+		organizer_note: null,
+		track_players: false
 	}
 ];
 

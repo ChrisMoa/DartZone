@@ -1,6 +1,12 @@
 import type { PageServerLoad } from './$types.js';
 import { error } from '@sveltejs/kit';
-import { tournamentRepo, matchRepo, standingsService, drinkingGameRepo } from '$lib/server/db.js';
+import {
+	tournamentRepo,
+	matchRepo,
+	standingsService,
+	drinkingGameRepo,
+	tournamentStatsService
+} from '$lib/server/db.js';
 
 export const load: PageServerLoad = async ({ params }) => {
 	const tournament = await tournamentRepo.getById(params.id);
@@ -12,5 +18,10 @@ export const load: PageServerLoad = async ({ params }) => {
 		drinkingGameRepo.getByTournament(params.id)
 	]);
 
-	return { tournament, standings, matches, drinkingGame };
+	const stats = tournamentStatsService.getStats(
+		params.id,
+		tournament.track_players ? 'player' : 'team'
+	);
+
+	return { tournament, standings, matches, drinkingGame, stats };
 };

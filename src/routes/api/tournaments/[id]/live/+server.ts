@@ -1,6 +1,12 @@
 import type { RequestHandler } from './$types.js';
 import { error, json } from '@sveltejs/kit';
-import { tournamentRepo, matchRepo, standingsService, drinkingGameRepo } from '$lib/server/db.js';
+import {
+	tournamentRepo,
+	matchRepo,
+	standingsService,
+	drinkingGameRepo,
+	tournamentStatsService
+} from '$lib/server/db.js';
 
 export const GET: RequestHandler = async ({ params }) => {
 	const tournament = await tournamentRepo.getById(params.id);
@@ -12,5 +18,10 @@ export const GET: RequestHandler = async ({ params }) => {
 		drinkingGameRepo.getByTournament(params.id)
 	]);
 
-	return json({ tournament, standings, matches, drinkingGame });
+	const stats = tournamentStatsService.getStats(
+		params.id,
+		tournament.track_players ? 'player' : 'team'
+	);
+
+	return json({ tournament, standings, matches, drinkingGame, stats });
 };

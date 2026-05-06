@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS tournaments (
 	organizer_logo BLOB,
 	organizer_logo_mime TEXT,
 	organizer_contact TEXT,
-	organizer_note TEXT
+	organizer_note TEXT,
+	track_players INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS tournament_clubs (

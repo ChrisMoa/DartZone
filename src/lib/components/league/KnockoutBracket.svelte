@@ -9,7 +9,6 @@
 
 	let { matches, tournamentId }: Props = $props();
 
-	/** Round name → ordering index (lower = earlier round). */
 	const ROUND_ORDER: Record<string, number> = {
 		'Runde 1': 0,
 		'Achtelfinale': 1,
@@ -25,9 +24,7 @@
 		roundName: string;
 	}
 
-	/** Build the bracket rounds from real matches + TBD placeholders for future rounds. */
 	const bracketRounds = $derived.by((): { name: string; slots: BracketSlot[] }[] => {
-		// Group matches by round
 		const byRound = new Map<string, Match[]>();
 		for (const m of matches) {
 			const round = m.round ?? 'Unbekannt';
@@ -35,7 +32,6 @@
 			byRound.get(round)!.push(m);
 		}
 
-		// Find the earliest round (most matches)
 		const roundNames = [...byRound.keys()].sort(
 			(a, b) => (ROUND_ORDER[a] ?? -1) - (ROUND_ORDER[b] ?? -1)
 		);
@@ -46,7 +42,6 @@
 		const firstRoundMatches = byRound.get(firstRoundName)!;
 		const firstRoundIdx = ROUND_SEQUENCE.indexOf(firstRoundName);
 
-		// Calculate total rounds needed: from first round to Finale
 		const finaleIdx = ROUND_SEQUENCE.indexOf('Finale');
 		const startIdx = firstRoundIdx >= 0 ? firstRoundIdx : 0;
 
@@ -59,10 +54,7 @@
 
 			const slots: BracketSlot[] = [];
 			for (let s = 0; s < slotsInRound; s++) {
-				slots.push({
-					match: existingMatches[s] ?? null,
-					roundName
-				});
+				slots.push({ match: existingMatches[s] ?? null, roundName });
 			}
 
 			rounds.push({ name: roundName, slots });
@@ -81,7 +73,6 @@
 				: null;
 	}
 
-	/** The tournament winner (finale completed). */
 	const finaleWinner = $derived.by(() => {
 		const finale = bracketRounds.at(-1)?.slots[0]?.match;
 		if (!finale || finale.status !== 'completed') return null;
@@ -91,39 +82,43 @@
 	});
 </script>
 
-<div class="overflow-x-auto" data-testid="knockout-bracket">
+<div class="overflow-x-auto pb-2" data-testid="knockout-bracket">
 	<div class="bracket">
 		{#each bracketRounds as round, roundIdx}
+			{@const isLastRound = roundIdx === bracketRounds.length - 1}
 			<div class="bracket-round">
 				<div class="bracket-round-title">{round.name}</div>
 				<div class="bracket-round-matches">
 					{#each round.slots as slot, slotIdx}
 						{@const match = slot.match}
 						{@const winnerId = match ? getWinnerId(match) : null}
-						{@const isLast = roundIdx === bracketRounds.length - 1}
+						{@const homeIsWinner = match && winnerId === match.home_club.id}
+						{@const awayIsWinner = match && winnerId === match.away_club.id}
+						{@const isOdd = slotIdx % 2 === 0}
 
-						<div class="bracket-match-wrapper">
-							<!-- Connector lines (not on first round) -->
+						<div class="bracket-cell">
+							<!-- in-connector from previous round -->
 							{#if roundIdx > 0}
-								<div class="bracket-connector-in"></div>
+								<div class="bracket-conn-in"
+									class:bracket-conn-in--winner={!!winnerId}
+								></div>
 							{/if}
 
+							<!-- match card (fixed-size rectangle) -->
 							<div
-								class="bracket-match"
-								class:bracket-match--completed={match?.status === 'completed'}
-								class:bracket-match--live={match?.status === 'in_progress'}
-								class:bracket-match--tbd={!match}
+								class="bracket-card"
+								class:bracket-card--scheduled={match?.status === 'scheduled'}
+								class:bracket-card--live={match?.status === 'in_progress'}
+								class:bracket-card--completed={match?.status === 'completed'}
+								class:bracket-card--tbd={!match}
 								data-testid="bracket-match"
 							>
 								{#if match}
-									{@const homeIsWinner = winnerId === match.home_club.id}
-									{@const awayIsWinner = winnerId === match.away_club.id}
-
-									<!-- Home team row -->
+									<!-- Home -->
 									<div
-										class="bracket-team"
-										class:bracket-team--winner={homeIsWinner}
-										class:bracket-team--loser={winnerId && !homeIsWinner}
+										class="bracket-row"
+										class:bracket-row--winner={homeIsWinner}
+										class:bracket-row--loser={winnerId && !homeIsWinner}
 									>
 										<ClubCrest
 											club_id={match.home_club.id}
@@ -131,19 +126,20 @@
 											crest_url={match.home_club.crest_url}
 											club_name={match.home_club.name}
 											primary_color={match.home_club.primary_color}
-											size={20}
+											size={22}
 										/>
-										<span class="bracket-team-name">{match.home_club.short_name}</span>
-										<span class="bracket-team-score">{match.home_legs_won}</span>
+										<span class="bracket-name">{match.home_club.short_name}</span>
+										{#if homeIsWinner}<span class="bracket-pin">▶</span>{/if}
+										<span class="bracket-score">{match.home_legs_won}</span>
 									</div>
 
-									<div class="bracket-divider"></div>
+									<div class="bracket-vs">vs</div>
 
-									<!-- Away team row -->
+									<!-- Away -->
 									<div
-										class="bracket-team"
-										class:bracket-team--winner={awayIsWinner}
-										class:bracket-team--loser={winnerId && !awayIsWinner}
+										class="bracket-row"
+										class:bracket-row--winner={awayIsWinner}
+										class:bracket-row--loser={winnerId && !awayIsWinner}
 									>
 										<ClubCrest
 											club_id={match.away_club.id}
@@ -151,39 +147,50 @@
 											crest_url={match.away_club.crest_url}
 											club_name={match.away_club.name}
 											primary_color={match.away_club.primary_color}
-											size={20}
+											size={22}
 										/>
-										<span class="bracket-team-name">{match.away_club.short_name}</span>
-										<span class="bracket-team-score">{match.away_legs_won}</span>
+										<span class="bracket-name">{match.away_club.short_name}</span>
+										{#if awayIsWinner}<span class="bracket-pin">▶</span>{/if}
+										<span class="bracket-score">{match.away_legs_won}</span>
 									</div>
 
-									<!-- Status / play link -->
+									<!-- Status footer -->
 									{#if match.status === 'in_progress'}
 										<a
-											href="/tournaments/{tournamentId}/matches/{match.id}/play"
-											class="bracket-status bracket-status--live"
-										>Live</a>
+											href="/tournaments/{tournamentId}/matches/{match.id}/view"
+											class="bracket-foot bracket-foot--live"
+										>
+											<span class="bracket-live-dot"></span>
+											Live
+										</a>
 									{:else if match.status === 'scheduled'}
 										<a
 											href="/tournaments/{tournamentId}/matches/{match.id}/play"
-											class="bracket-status bracket-status--scheduled"
+											class="bracket-foot bracket-foot--scheduled"
 										>Spielen</a>
+									{:else if match.status === 'completed'}
+										<div class="bracket-foot bracket-foot--done">Beendet</div>
 									{/if}
 								{:else}
-									<!-- TBD slot -->
-									<div class="bracket-team bracket-team--tbd">
-										<span class="bracket-team-name text-base-content/30">TBD</span>
+									<!-- TBD -->
+									<div class="bracket-row bracket-row--tbd">
+										<span class="bracket-name">TBD</span>
 									</div>
-									<div class="bracket-divider"></div>
-									<div class="bracket-team bracket-team--tbd">
-										<span class="bracket-team-name text-base-content/30">TBD</span>
+									<div class="bracket-vs">vs</div>
+									<div class="bracket-row bracket-row--tbd">
+										<span class="bracket-name">TBD</span>
 									</div>
+									<div class="bracket-foot bracket-foot--tbd">Wartet</div>
 								{/if}
 							</div>
 
-							<!-- Connector lines (not on last round) -->
-							{#if !isLast}
-								<div class="bracket-connector-out"></div>
+							<!-- out-connector to next round -->
+							{#if !isLastRound}
+								<div class="bracket-conn-out"
+									class:bracket-conn-out--winner={!!winnerId}
+									class:bracket-conn-out--top={isOdd}
+									class:bracket-conn-out--bot={!isOdd}
+								></div>
 							{/if}
 						</div>
 					{/each}
@@ -191,23 +198,23 @@
 			</div>
 		{/each}
 
-		<!-- Trophy for the winner of the finale -->
 		{#if finaleWinner}
-			<div class="bracket-round">
-				<div class="bracket-round-title">&nbsp;</div>
+			<div class="bracket-round bracket-round--trophy">
+				<div class="bracket-round-title">Sieger</div>
 				<div class="bracket-round-matches">
-					<div class="bracket-match-wrapper">
-						<div class="bracket-connector-in"></div>
+					<div class="bracket-cell">
+						<div class="bracket-conn-in bracket-conn-in--winner"></div>
 						<div class="bracket-trophy" data-testid="bracket-winner">
+							<span class="bracket-trophy-icon">🏆</span>
 							<ClubCrest
 								club_id={finaleWinner.id}
 								has_crest={finaleWinner.has_crest}
 								crest_url={finaleWinner.crest_url}
 								club_name={finaleWinner.name}
 								primary_color={finaleWinner.primary_color}
-								size={36}
+								size={48}
 							/>
-							<span class="text-2xl">🏆</span>
+							<span class="bracket-trophy-name">{finaleWinner.name}</span>
 						</div>
 					</div>
 				</div>
@@ -220,23 +227,27 @@
 	.bracket {
 		display: flex;
 		gap: 0;
-		padding: 1rem 0;
+		padding: 0.5rem 0;
 		min-width: max-content;
 	}
 
 	.bracket-round {
 		display: flex;
 		flex-direction: column;
-		min-width: 180px;
+		min-width: 220px;
+	}
+
+	.bracket-round--trophy {
+		min-width: 200px;
 	}
 
 	.bracket-round-title {
 		text-align: center;
 		font-size: 0.75rem;
-		font-weight: 600;
+		font-weight: 700;
+		letter-spacing: 0.08em;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		opacity: 0.5;
+		color: oklch(var(--bc) / 0.55);
 		padding-bottom: 0.75rem;
 	}
 
@@ -245,156 +256,245 @@
 		flex-direction: column;
 		flex: 1;
 		justify-content: space-around;
+		gap: 0.5rem;
 	}
 
-	.bracket-match-wrapper {
+	.bracket-cell {
 		display: flex;
 		align-items: center;
-		padding: 0.25rem 0;
+		flex: 1;
 	}
 
-	.bracket-connector-in,
-	.bracket-connector-out {
-		width: 20px;
-		min-width: 20px;
+	/* Connector geometry — connectors are fixed width and stretch vertically */
+	.bracket-conn-in,
+	.bracket-conn-out {
+		width: 18px;
+		min-width: 18px;
 		align-self: stretch;
 		position: relative;
 	}
 
-	.bracket-connector-in::before {
+	.bracket-conn-in::before {
 		content: '';
 		position: absolute;
 		right: 0;
 		top: 50%;
 		width: 100%;
 		height: 0;
-		border-top: 2px solid oklch(var(--bc) / 0.15);
+		border-top: 2px solid oklch(var(--bc) / 0.2);
 	}
 
-	.bracket-connector-out::before {
+	/* outgoing horizontal stub */
+	.bracket-conn-out::before {
 		content: '';
 		position: absolute;
 		left: 0;
 		top: 50%;
 		width: 100%;
 		height: 0;
-		border-top: 2px solid oklch(var(--bc) / 0.15);
+		border-top: 2px solid oklch(var(--bc) / 0.2);
 	}
 
-	/* Vertical connectors: connect pairs of matches to next round */
-	.bracket-round-matches > .bracket-match-wrapper:nth-child(odd) .bracket-connector-out::after {
+	/* outgoing vertical stub joins pair into next round */
+	.bracket-conn-out--top::after,
+	.bracket-conn-out--bot::after {
 		content: '';
 		position: absolute;
 		right: 0;
+		width: 0;
+		border-right: 2px solid oklch(var(--bc) / 0.2);
+	}
+
+	.bracket-conn-out--top::after {
 		top: 50%;
-		bottom: 0;
-		width: 0;
-		border-right: 2px solid oklch(var(--bc) / 0.15);
+		bottom: -0.5rem;
 	}
 
-	.bracket-round-matches > .bracket-match-wrapper:nth-child(even) .bracket-connector-out::after {
-		content: '';
-		position: absolute;
-		right: 0;
-		top: 0;
+	.bracket-conn-out--bot::after {
+		top: -0.5rem;
 		bottom: 50%;
-		width: 0;
-		border-right: 2px solid oklch(var(--bc) / 0.15);
 	}
 
-	.bracket-match {
+	/* Winner-line accent: the connector leaving a completed match shines accent */
+	.bracket-conn-out--winner::before,
+	.bracket-conn-in--winner::before {
+		border-top-color: oklch(var(--p) / 0.7);
+		border-top-width: 2.5px;
+	}
+
+	.bracket-conn-out--winner::after {
+		border-right-color: oklch(var(--p) / 0.7);
+		border-right-width: 2.5px;
+	}
+
+	/* The match card — fixed size rectangle, same shape for TBD/scheduled/live/completed */
+	.bracket-card {
 		flex: 1;
-		border: 1px solid oklch(var(--bc) / 0.1);
-		border-radius: 0.5rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.125rem;
+		border: 1.5px solid oklch(var(--bc) / 0.12);
+		border-radius: 0.625rem;
 		background: oklch(var(--b1));
-		padding: 0.25rem;
-		min-width: 140px;
+		padding: 0.5rem 0.625rem 0.375rem 0.625rem;
+		min-width: 170px;
+		min-height: 92px;
 		position: relative;
+		transition: box-shadow 120ms ease, border-color 120ms ease;
 	}
 
-	.bracket-match--completed {
-		border-color: oklch(var(--su) / 0.3);
-	}
-
-	.bracket-match--live {
-		border-color: oklch(var(--su) / 0.6);
-		box-shadow: 0 0 0 1px oklch(var(--su) / 0.2);
-	}
-
-	.bracket-match--tbd {
+	.bracket-card--tbd {
 		border-style: dashed;
-		opacity: 0.5;
+		opacity: 0.55;
 	}
 
-	.bracket-team {
+	.bracket-card--scheduled {
+		border-color: oklch(var(--in) / 0.45);
+	}
+
+	.bracket-card--live {
+		border-color: oklch(var(--su) / 0.65);
+		box-shadow: 0 0 0 2px oklch(var(--su) / 0.18);
+	}
+
+	.bracket-card--completed {
+		border-color: oklch(var(--p) / 0.4);
+		background: linear-gradient(180deg, oklch(var(--b1)) 0%, oklch(var(--p) / 0.05) 100%);
+	}
+
+	.bracket-row {
 		display: flex;
 		align-items: center;
-		gap: 0.375rem;
+		gap: 0.5rem;
 		padding: 0.25rem 0.375rem;
-		border-radius: 0.25rem;
+		border-radius: 0.375rem;
+		font-size: 0.85rem;
 	}
 
-	.bracket-team--winner {
-		font-weight: 700;
-		background: oklch(var(--su) / 0.08);
+	.bracket-row--winner {
+		font-weight: 800;
+		color: oklch(var(--pc));
+		background: oklch(var(--p) / 0.85);
+		box-shadow: inset 0 0 0 1px oklch(var(--p));
 	}
 
-	.bracket-team--loser {
-		opacity: 0.45;
+	.bracket-row--loser {
+		color: oklch(var(--bc) / 0.5);
 	}
 
-	.bracket-team--tbd {
-		min-height: 1.75rem;
+	.bracket-row--tbd {
+		color: oklch(var(--bc) / 0.35);
+		min-height: 1.875rem;
 	}
 
-	.bracket-team-name {
+	.bracket-name {
 		flex: 1;
-		font-size: 0.8rem;
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		letter-spacing: 0.02em;
 	}
 
-	.bracket-team-score {
-		font-size: 0.8rem;
+	.bracket-pin {
+		font-size: 0.65rem;
+		opacity: 0.85;
+	}
+
+	.bracket-score {
 		font-variant-numeric: tabular-nums;
-		min-width: 1rem;
+		min-width: 1.25rem;
 		text-align: right;
+		font-weight: 700;
+		font-size: 0.95rem;
 	}
 
-	.bracket-divider {
-		height: 1px;
-		background: oklch(var(--bc) / 0.08);
-		margin: 0 0.375rem;
+	.bracket-vs {
+		text-align: center;
+		font-size: 0.6rem;
+		font-weight: 600;
+		letter-spacing: 0.15em;
+		color: oklch(var(--bc) / 0.35);
+		text-transform: uppercase;
 	}
 
-	.bracket-status {
-		display: block;
+	.bracket-foot {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.375rem;
 		text-align: center;
 		font-size: 0.65rem;
+		font-weight: 600;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
 		padding: 0.125rem 0;
-		border-radius: 0 0 0.375rem 0.375rem;
+		border-top: 1px dashed oklch(var(--bc) / 0.1);
+		margin-top: 0.125rem;
 		text-decoration: none;
 	}
 
-	.bracket-status--live {
+	.bracket-foot--live {
 		color: oklch(var(--su));
-		font-weight: 600;
 	}
 
-	.bracket-status--scheduled {
+	.bracket-foot--scheduled {
 		color: oklch(var(--in));
 	}
 
-	.bracket-status--scheduled:hover {
+	.bracket-foot--scheduled:hover {
 		text-decoration: underline;
+	}
+
+	.bracket-foot--done {
+		color: oklch(var(--p) / 0.7);
+	}
+
+	.bracket-foot--tbd {
+		color: oklch(var(--bc) / 0.3);
+	}
+
+	.bracket-live-dot {
+		width: 0.5rem;
+		height: 0.5rem;
+		border-radius: 9999px;
+		background: oklch(var(--su));
+		box-shadow: 0 0 0 0 oklch(var(--su) / 0.7);
+		animation: bracket-pulse 1.5s infinite;
+	}
+
+	@keyframes bracket-pulse {
+		0% {
+			box-shadow: 0 0 0 0 oklch(var(--su) / 0.7);
+		}
+		70% {
+			box-shadow: 0 0 0 6px oklch(var(--su) / 0);
+		}
+		100% {
+			box-shadow: 0 0 0 0 oklch(var(--su) / 0);
+		}
 	}
 
 	.bracket-trophy {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.25rem;
-		padding: 0.5rem;
+		gap: 0.5rem;
+		padding: 1rem 0.75rem;
+		border-radius: 0.75rem;
+		background: linear-gradient(180deg, oklch(var(--p) / 0.18) 0%, oklch(var(--p) / 0.06) 100%);
+		border: 1.5px solid oklch(var(--p) / 0.5);
+		flex: 1;
+	}
+
+	.bracket-trophy-icon {
+		font-size: 1.75rem;
+		filter: drop-shadow(0 0 8px oklch(var(--p) / 0.4));
+	}
+
+	.bracket-trophy-name {
+		font-weight: 700;
+		font-size: 0.95rem;
+		text-align: center;
+		color: oklch(var(--bc));
 	}
 </style>

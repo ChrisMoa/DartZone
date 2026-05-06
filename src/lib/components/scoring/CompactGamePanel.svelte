@@ -19,6 +19,7 @@
 		matchStarted: boolean;
 		matchCompleted: boolean;
 		isCricket: boolean;
+		trackPlayers?: boolean;
 		starting?: boolean;
 		resetting?: boolean;
 		error?: string | null;
@@ -40,6 +41,7 @@
 		matchStarted,
 		matchCompleted,
 		isCricket,
+		trackPlayers = true,
 		starting = false,
 		resetting = false,
 		error = null,
@@ -131,16 +133,18 @@
 			<!-- Started on another connection — offer resume/reset -->
 			<div class="flex flex-col gap-1 items-center py-1">
 				<span class="text-[0.65rem] text-warning">Unterbrochen (Leg {legNumber}, {homeLegsWon}:{awayLegsWon})</span>
-				<select class="select select-bordered select-xs w-full" bind:value={homePlayerIndex}>
-					{#each homePlayers as player, i (player.id)}
-						<option value={i}>{player.first_name} {player.last_name}</option>
-					{/each}
-				</select>
-				<select class="select select-bordered select-xs w-full" bind:value={awayPlayerIndex}>
-					{#each awayPlayers as player, i (player.id)}
-						<option value={i}>{player.first_name} {player.last_name}</option>
-					{/each}
-				</select>
+				{#if trackPlayers}
+					<select class="select select-bordered select-xs w-full" bind:value={homePlayerIndex}>
+						{#each homePlayers as player, i (player.id)}
+							<option value={i}>{player.first_name} {player.last_name}</option>
+						{/each}
+					</select>
+					<select class="select select-bordered select-xs w-full" bind:value={awayPlayerIndex}>
+						{#each awayPlayers as player, i (player.id)}
+							<option value={i}>{player.first_name} {player.last_name}</option>
+						{/each}
+					</select>
+				{/if}
 				{#if error}
 					<div class="text-xs text-error">{error}</div>
 				{/if}
@@ -168,16 +172,22 @@
 		{:else if !matchStarted}
 			<!-- Player selection (compact) -->
 			<div class="flex flex-col gap-1">
-				<select class="select select-bordered select-xs w-full" bind:value={homePlayerIndex} data-testid="panel-home-player-{panelIndex}">
-					{#each homePlayers as player, i (player.id)}
-						<option value={i}>{player.first_name} {player.last_name}</option>
-					{/each}
-				</select>
-				<select class="select select-bordered select-xs w-full" bind:value={awayPlayerIndex} data-testid="panel-away-player-{panelIndex}">
-					{#each awayPlayers as player, i (player.id)}
-						<option value={i}>{player.first_name} {player.last_name}</option>
-					{/each}
-				</select>
+				{#if trackPlayers}
+					<select class="select select-bordered select-xs w-full" bind:value={homePlayerIndex} data-testid="panel-home-player-{panelIndex}">
+						{#each homePlayers as player, i (player.id)}
+							<option value={i}>{player.first_name} {player.last_name}</option>
+						{/each}
+					</select>
+					<select class="select select-bordered select-xs w-full" bind:value={awayPlayerIndex} data-testid="panel-away-player-{panelIndex}">
+						{#each awayPlayers as player, i (player.id)}
+							<option value={i}>{player.first_name} {player.last_name}</option>
+						{/each}
+					</select>
+				{:else}
+					<div class="text-[0.7rem] text-base-content/60 text-center">
+						Team-Modus: gesamtes Team spielt
+					</div>
+				{/if}
 				{#if error}
 					<div class="text-xs text-error">{error}</div>
 				{/if}
@@ -197,7 +207,9 @@
 			<!-- Active game scoreboard (compact) -->
 			<div class="grid grid-cols-3 gap-1">
 				<div class="text-center {game.current_player_id === game.home_player.id ? 'text-primary font-bold' : ''}">
-					<div class="text-[0.65rem] truncate">{game.home_player.first_name}</div>
+					<div class="text-[0.65rem] truncate">
+						{trackPlayers ? game.home_player.first_name : match.home_club.short_name}
+					</div>
 					<div class="text-xl font-bold tabular-nums" data-testid="panel-home-remaining-{panelIndex}">
 						{game.home_remaining}
 					</div>
@@ -213,7 +225,9 @@
 					</div>
 				</div>
 				<div class="text-center {game.current_player_id === game.away_player.id ? 'text-secondary font-bold' : ''}">
-					<div class="text-[0.65rem] truncate">{game.away_player.first_name}</div>
+					<div class="text-[0.65rem] truncate">
+						{trackPlayers ? game.away_player.first_name : match.away_club.short_name}
+					</div>
 					<div class="text-xl font-bold tabular-nums" data-testid="panel-away-remaining-{panelIndex}">
 						{game.away_remaining}
 					</div>

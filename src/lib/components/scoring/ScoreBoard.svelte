@@ -6,9 +6,13 @@
 
 	interface Props {
 		game: GameStore;
+		homeLabel?: string;
+		awayLabel?: string;
 	}
 
-	let { game }: Props = $props();
+	let { game, homeLabel, awayLabel }: Props = $props();
+	const homeName = $derived(homeLabel ?? `${game.home_player.first_name} ${game.home_player.last_name}`);
+	const awayName = $derived(awayLabel ?? `${game.away_player.first_name} ${game.away_player.last_name}`);
 	const settingsStore = getContext<SettingsStore>('settings');
 
 	const homeActive = $derived(game.current_player_id === game.home_player.id);
@@ -94,7 +98,7 @@
 		data-testid="scoreboard-home"
 	>
 		<div class="text-sm font-medium truncate {homeActive ? 'text-primary' : ''}" data-testid="scoreboard-home-name">
-			{game.home_player.first_name} {game.home_player.last_name}
+			{homeName}
 		</div>
 		<div class="text-4xl font-bold my-2 tabular-nums {homeActive ? 'text-primary' : ''}" data-testid="scoreboard-home-remaining">
 			{game.home_remaining}
@@ -145,7 +149,7 @@
 		data-testid="scoreboard-away"
 	>
 		<div class="text-sm font-medium truncate {awayActive ? 'text-secondary' : ''}" data-testid="scoreboard-away-name">
-			{game.away_player.first_name} {game.away_player.last_name}
+			{awayName}
 		</div>
 		<div class="text-4xl font-bold my-2 tabular-nums {awayActive ? 'text-secondary' : ''}" data-testid="scoreboard-away-remaining">
 			{game.away_remaining}

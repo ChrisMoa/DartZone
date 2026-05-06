@@ -17,7 +17,8 @@ export const actions: Actions = {
 			status: (formData.get('status') as string) || 'planned',
 			organizer_name: (formData.get('organizer_name') as string) || null,
 			organizer_contact: (formData.get('organizer_contact') as string) || null,
-			organizer_note: (formData.get('organizer_note') as string) || null
+			organizer_note: (formData.get('organizer_note') as string) || null,
+			track_players: formData.get('track_players') != null
 		};
 
 		const result = tournamentSchema.safeParse(raw);
@@ -34,7 +35,8 @@ export const actions: Actions = {
 			...result.data,
 			organizer_name: raw.organizer_name,
 			organizer_contact: raw.organizer_contact,
-			organizer_note: raw.organizer_note
+			organizer_note: raw.organizer_note,
+			track_players: raw.track_players
 		});
 
 		// Handle logo upload

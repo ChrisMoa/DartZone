@@ -413,6 +413,7 @@
 					matchStarted={slots[i].matchStarted}
 					matchCompleted={slots[i].matchCompleted}
 					isCricket={isCricket}
+					trackPlayers={data.tournament.track_players}
 					starting={startingSlot === i}
 					resetting={resettingSlot === i}
 					error={startingSlot === i || resettingSlot === i || activeSlotIndex === i ? startError : null}

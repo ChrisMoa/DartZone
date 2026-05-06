@@ -16,6 +16,7 @@ export interface Tournament {
 	has_organizer_logo: boolean;
 	organizer_contact: string | null;
 	organizer_note: string | null;
+	track_players: boolean;
 }
 
 export interface Match {
