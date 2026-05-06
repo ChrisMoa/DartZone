@@ -100,7 +100,7 @@
 
 <!-- svelte-ignore a11y_no_static_element_interactions a11y_mouse_events_have_key_events -->
 <div
-	class="fixed inset-0 bg-base-200 flex flex-col"
+	class="fixed inset-0 z-50 bg-base-200 flex flex-col"
 	data-testid="spectator-page"
 	onmousemove={showChrome}
 	ontouchstart={showChrome}
