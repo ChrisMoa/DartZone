@@ -73,40 +73,73 @@
 			<span class="loading loading-spinner loading-md"></span>
 		</div>
 	{:else}
-		<!-- Compact header: clubs + leg score -->
-		<div class="flex items-center justify-between gap-2 px-3 py-2 bg-base-100 shrink-0">
+		<!-- Header: clubs + leg score (sized via container queries so it scales with tile width) -->
+		<div class="flex items-center justify-between gap-3 px-3 py-2 bg-base-100 shrink-0">
 			<div class="flex items-center gap-2 flex-1 min-w-0 justify-end">
 				<div class="flex flex-col items-end min-w-0">
-					<span class="text-sm font-bold truncate max-w-full">{match.home_club.short_name}</span>
+					<span
+						class="font-bold truncate max-w-full leading-tight"
+						style="font-size: clamp(1rem, 4cqw, 3rem);"
+					>
+						{match.home_club.short_name}
+					</span>
 					{#if live}
-						<span class="text-[10px] text-base-content/60 truncate max-w-full">{live.home_player_name}</span>
+						<span
+							class="text-base-content/60 truncate max-w-full leading-tight"
+							style="font-size: clamp(0.7rem, 1.8cqw, 1.5rem);"
+						>
+							{live.home_player_name}
+						</span>
 					{/if}
 				</div>
-				<ClubCrest
-					club_id={match.home_club.id}
-					has_crest={match.home_club.has_crest}
-					crest_url={match.home_club.crest_url}
-					club_name={match.home_club.name}
-					primary_color={match.home_club.primary_color}
-					size={28}
-				/>
+				<div
+					class="shrink-0"
+					style="width: clamp(28px, 6cqw, 96px); height: clamp(28px, 6cqw, 96px);"
+				>
+					<ClubCrest
+						club_id={match.home_club.id}
+						has_crest={match.home_club.has_crest}
+						crest_url={match.home_club.crest_url}
+						club_name={match.home_club.name}
+						primary_color={match.home_club.primary_color}
+						size={96}
+					/>
+				</div>
 			</div>
-			<div class="text-2xl font-bold tabular-nums shrink-0">
+			<div
+				class="font-black tabular-nums shrink-0 leading-none"
+				style="font-size: clamp(1.5rem, 7cqw, 6rem);"
+			>
 				{match.home_legs_won}:{match.away_legs_won}
 			</div>
 			<div class="flex items-center gap-2 flex-1 min-w-0 justify-start">
-				<ClubCrest
-					club_id={match.away_club.id}
-					has_crest={match.away_club.has_crest}
-					crest_url={match.away_club.crest_url}
-					club_name={match.away_club.name}
-					primary_color={match.away_club.primary_color}
-					size={28}
-				/>
+				<div
+					class="shrink-0"
+					style="width: clamp(28px, 6cqw, 96px); height: clamp(28px, 6cqw, 96px);"
+				>
+					<ClubCrest
+						club_id={match.away_club.id}
+						has_crest={match.away_club.has_crest}
+						crest_url={match.away_club.crest_url}
+						club_name={match.away_club.name}
+						primary_color={match.away_club.primary_color}
+						size={96}
+					/>
+				</div>
 				<div class="flex flex-col items-start min-w-0">
-					<span class="text-sm font-bold truncate max-w-full">{match.away_club.short_name}</span>
+					<span
+						class="font-bold truncate max-w-full leading-tight"
+						style="font-size: clamp(1rem, 4cqw, 3rem);"
+					>
+						{match.away_club.short_name}
+					</span>
 					{#if live}
-						<span class="text-[10px] text-base-content/60 truncate max-w-full">{live.away_player_name}</span>
+						<span
+							class="text-base-content/60 truncate max-w-full leading-tight"
+							style="font-size: clamp(0.7rem, 1.8cqw, 1.5rem);"
+						>
+							{live.away_player_name}
+						</span>
 					{/if}
 				</div>
 			</div>
