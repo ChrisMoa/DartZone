@@ -346,12 +346,30 @@ export class SqliteTournamentRepository implements TournamentRepository {
 		this.db
 			.prepare('INSERT OR IGNORE INTO tournament_clubs (tournament_id, club_id) VALUES (?, ?)')
 			.run(tournamentId, clubId);
+
+		const games = this.db
+			.prepare('SELECT id FROM drinking_games WHERE tournament_id = ?')
+			.all(tournamentId) as Array<{ id: string }>;
+		const insertScore = this.db.prepare(
+			'INSERT OR IGNORE INTO drinking_scores (id, drinking_game_id, club_id, drink_count, updated_at) VALUES (?, ?, ?, 0, ?)'
+		);
+		const ts = now();
+		for (const g of games) {
+			insertScore.run(generateId(), g.id, clubId, ts);
+		}
 	}
 
 	async removeClub(tournamentId: string, clubId: string): Promise<void> {
 		this.db
 			.prepare('DELETE FROM tournament_clubs WHERE tournament_id = ? AND club_id = ?')
 			.run(tournamentId, clubId);
+		this.db
+			.prepare(
+				`DELETE FROM drinking_scores
+				 WHERE club_id = ?
+				   AND drinking_game_id IN (SELECT id FROM drinking_games WHERE tournament_id = ?)`
+			)
+			.run(clubId, tournamentId);
 	}
 
 	async getLogoData(id: string): Promise<{ data: Buffer; mime: string } | null> {
@@ -777,6 +795,26 @@ export class SqliteDrinkingGameRepository implements DrinkingGameRepository {
 	}
 
 	async getScores(gameId: string): Promise<DrinkingScore[]> {
+		const missing = this.db
+			.prepare(
+				`SELECT tc.club_id
+				 FROM drinking_games dg
+				 JOIN tournament_clubs tc ON tc.tournament_id = dg.tournament_id
+				 LEFT JOIN drinking_scores ds
+				   ON ds.drinking_game_id = dg.id AND ds.club_id = tc.club_id
+				 WHERE dg.id = ? AND ds.id IS NULL`
+			)
+			.all(gameId) as Array<{ club_id: string }>;
+		if (missing.length > 0) {
+			const insertScore = this.db.prepare(
+				'INSERT OR IGNORE INTO drinking_scores (id, drinking_game_id, club_id, drink_count, updated_at) VALUES (?, ?, ?, 0, ?)'
+			);
+			const ts = now();
+			for (const m of missing) {
+				insertScore.run(generateId(), gameId, m.club_id, ts);
+			}
+		}
+
 		const rows = this.db
 			.prepare(
 				`SELECT ds.id, ds.drinking_game_id, ds.club_id, c.name as club_name,
@@ -802,7 +840,16 @@ export class SqliteDrinkingGameRepository implements DrinkingGameRepository {
 		}));
 	}
 
+	private ensureScoreRow(gameId: string, clubId: string): void {
+		this.db
+			.prepare(
+				'INSERT OR IGNORE INTO drinking_scores (id, drinking_game_id, club_id, drink_count, updated_at) VALUES (?, ?, ?, 0, ?)'
+			)
+			.run(generateId(), gameId, clubId, now());
+	}
+
 	async incrementDrink(gameId: string, clubId: string): Promise<void> {
+		this.ensureScoreRow(gameId, clubId);
 		this.db
 			.prepare(
 				'UPDATE drinking_scores SET drink_count = drink_count + 1, updated_at = ? WHERE drinking_game_id = ? AND club_id = ?'
@@ -811,6 +858,7 @@ export class SqliteDrinkingGameRepository implements DrinkingGameRepository {
 	}
 
 	async decrementDrink(gameId: string, clubId: string): Promise<void> {
+		this.ensureScoreRow(gameId, clubId);
 		this.db
 			.prepare(
 				'UPDATE drinking_scores SET drink_count = MAX(0, drink_count - 1), updated_at = ? WHERE drinking_game_id = ? AND club_id = ?'
@@ -819,6 +867,7 @@ export class SqliteDrinkingGameRepository implements DrinkingGameRepository {
 	}
 
 	async addDrinks(gameId: string, clubId: string, amount: number): Promise<void> {
+		this.ensureScoreRow(gameId, clubId);
 		this.db
 			.prepare(
 				'UPDATE drinking_scores SET drink_count = MAX(0, drink_count + ?), updated_at = ? WHERE drinking_game_id = ? AND club_id = ?'

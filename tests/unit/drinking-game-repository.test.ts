@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { SCHEMA_SQL } from '$lib/server/schema.js';
-import { SqliteDrinkingGameRepository } from '$lib/server/sqlite-repository.js';
+import { SqliteDrinkingGameRepository, SqliteTournamentRepository } from '$lib/server/sqlite-repository.js';
 
 function createTestDb(): Database.Database {
 	const db = new Database(':memory:');
@@ -158,6 +158,57 @@ describe('SqliteDrinkingGameRepository', () => {
 			const scores = await repo.getScores(game.id);
 			const club1 = scores.find((s) => s.club_id === 'club1');
 			expect(club1!.drink_count).toBe(0);
+		});
+	});
+
+	describe('clubs added after game creation', () => {
+		it('backfills score rows on getScores when clubs were added after the game was created', async () => {
+			db.exec("DELETE FROM tournament_clubs WHERE tournament_id = 't1'");
+			const game = await repo.create('t1');
+			expect(await repo.getScores(game.id)).toHaveLength(0);
+
+			db.exec("INSERT INTO tournament_clubs (tournament_id, club_id) VALUES ('t1', 'club1')");
+			db.exec("INSERT INTO tournament_clubs (tournament_id, club_id) VALUES ('t1', 'club2')");
+
+			const scores = await repo.getScores(game.id);
+			expect(scores).toHaveLength(2);
+			expect(scores.every((s) => s.drink_count === 0)).toBe(true);
+		});
+
+		it('addDrinks creates the score row if missing', async () => {
+			db.exec("DELETE FROM tournament_clubs WHERE tournament_id = 't1'");
+			const game = await repo.create('t1');
+			db.exec("INSERT INTO tournament_clubs (tournament_id, club_id) VALUES ('t1', 'club1')");
+
+			await repo.addDrinks(game.id, 'club1', 3);
+
+			const scores = await repo.getScores(game.id);
+			const club1 = scores.find((s) => s.club_id === 'club1');
+			expect(club1!.drink_count).toBe(3);
+		});
+
+		it('assignClub creates a score row when a drinking game already exists', async () => {
+			const tournamentRepo = new SqliteTournamentRepository(db);
+			db.exec("DELETE FROM tournament_clubs WHERE tournament_id = 't1'");
+			const game = await repo.create('t1');
+
+			await tournamentRepo.assignClub('t1', 'club1');
+			await tournamentRepo.assignClub('t1', 'club2');
+
+			const scores = await repo.getScores(game.id);
+			expect(scores).toHaveLength(2);
+		});
+
+		it('removeClub deletes the score row', async () => {
+			const tournamentRepo = new SqliteTournamentRepository(db);
+			const game = await repo.create('t1');
+			expect(await repo.getScores(game.id)).toHaveLength(3);
+
+			await tournamentRepo.removeClub('t1', 'club2');
+
+			const scores = await repo.getScores(game.id);
+			expect(scores).toHaveLength(2);
+			expect(scores.find((s) => s.club_id === 'club2')).toBeUndefined();
 		});
 	});
 
