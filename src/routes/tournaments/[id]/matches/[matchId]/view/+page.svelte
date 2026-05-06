@@ -77,7 +77,7 @@
 			<div class="flex flex-col items-end min-w-0">
 				<span
 					class="font-bold text-right leading-tight truncate max-w-full"
-					style="font-size: clamp(2rem, 4vw, 5rem);"
+					style="font-size: clamp(2.5rem, 7vw, 9rem);"
 				>
 					{match.home_club.name}
 				</span>
@@ -87,7 +87,7 @@
 							{@const isActive = live?.current_player_side === 'home' && live.home_player_name === `${p.first_name} ${p.last_name}`}
 							<span
 								class="{isActive ? 'text-primary font-semibold' : 'text-base-content/70'}"
-								style="font-size: clamp(1rem, 1.4vw, 1.75rem);"
+								style="font-size: clamp(1.125rem, 2.2vw, 3rem);"
 							>
 								{#if isActive}● {/if}{p.first_name} {p.last_name}
 							</span>
@@ -97,21 +97,21 @@
 					<span class="text-base md:text-xl text-base-content/70 mt-2">{live.home_player_name}</span>
 				{/if}
 			</div>
-			<div class="shrink-0" style="width: clamp(80px, 8vw, 144px); height: clamp(80px, 8vw, 144px);">
+			<div class="shrink-0" style="width: clamp(96px, 14vw, 240px); height: clamp(96px, 14vw, 240px);">
 				<ClubCrest
 					club_id={match.home_club.id}
 					has_crest={match.home_club.has_crest}
 					crest_url={match.home_club.crest_url}
 					club_name={match.home_club.name}
 					primary_color={match.home_club.primary_color}
-					size={144}
+					size={240}
 				/>
 			</div>
 		</div>
 		<div class="flex flex-col items-center justify-center shrink-0">
 			<span
 				class="font-black tabular-nums leading-none"
-				style="font-size: clamp(4rem, 9vw, 11rem);"
+				style="font-size: clamp(5rem, 16vw, 20rem);"
 				data-testid="view-leg-score"
 			>
 				{match.home_legs_won} : {match.away_legs_won}
@@ -119,20 +119,20 @@
 			<span class="text-sm md:text-lg text-base-content/50 uppercase tracking-wider mt-2">Legs</span>
 		</div>
 		<div class="flex items-center gap-5 md:gap-7 flex-1 justify-start min-w-0">
-			<div class="shrink-0" style="width: clamp(80px, 8vw, 144px); height: clamp(80px, 8vw, 144px);">
+			<div class="shrink-0" style="width: clamp(96px, 14vw, 240px); height: clamp(96px, 14vw, 240px);">
 				<ClubCrest
 					club_id={match.away_club.id}
 					has_crest={match.away_club.has_crest}
 					crest_url={match.away_club.crest_url}
 					club_name={match.away_club.name}
 					primary_color={match.away_club.primary_color}
-					size={144}
+					size={240}
 				/>
 			</div>
 			<div class="flex flex-col items-start min-w-0">
 				<span
 					class="font-bold text-left leading-tight truncate max-w-full"
-					style="font-size: clamp(2rem, 4vw, 5rem);"
+					style="font-size: clamp(2.5rem, 7vw, 9rem);"
 				>
 					{match.away_club.name}
 				</span>
@@ -142,7 +142,7 @@
 							{@const isActive = live?.current_player_side === 'away' && live.away_player_name === `${p.first_name} ${p.last_name}`}
 							<span
 								class="{isActive ? 'text-primary font-semibold' : 'text-base-content/70'}"
-								style="font-size: clamp(1rem, 1.4vw, 1.75rem);"
+								style="font-size: clamp(1.125rem, 2.2vw, 3rem);"
 							>
 								{#if isActive}● {/if}{p.first_name} {p.last_name}
 							</span>
