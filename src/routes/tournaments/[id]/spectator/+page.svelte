@@ -170,6 +170,13 @@
 			: 'opacity-0 pointer-events-none'}"
 	>
 		<a
+			href="/tournaments/{data.tournament.id}/spectator/overview"
+			class="btn btn-sm btn-neutral shadow-lg"
+			title="Spielplan-Uebersicht"
+		>
+			≡ Uebersicht
+		</a>
+		<a
 			href="/tournaments/{data.tournament.id}/spectator/configure"
 			class="btn btn-sm btn-neutral shadow-lg"
 			title="Konfigurieren"
