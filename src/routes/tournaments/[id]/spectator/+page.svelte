@@ -110,6 +110,29 @@
 	const maxTiles = $derived(layoutDef.cols * layoutDef.rows);
 	const visibleMatchIds = $derived(selectedMatchIds.slice(0, maxTiles));
 
+	// Treat the configured layout as a cap; pick the tightest grid that fits
+	// the actual visible count so a single match fills the screen instead of
+	// living in a 2×2 with 3 empty cells.
+	const COUNT_TO_LAYOUT: Record<number, { cols: number; rows: number }> = {
+		1: { cols: 1, rows: 1 },
+		2: { cols: 2, rows: 1 },
+		3: { cols: 3, rows: 1 },
+		4: { cols: 2, rows: 2 },
+		5: { cols: 3, rows: 2 },
+		6: { cols: 3, rows: 2 },
+		7: { cols: 4, rows: 2 },
+		8: { cols: 4, rows: 2 },
+		9: { cols: 3, rows: 3 }
+	};
+	const effectiveLayout = $derived.by(() => {
+		const count = visibleMatchIds.length;
+		if (count === 0) return { cols: layoutDef.cols, rows: layoutDef.rows };
+		const ideal = COUNT_TO_LAYOUT[count] ?? { cols: 3, rows: 3 };
+		const cols = Math.max(1, Math.min(ideal.cols, layoutDef.cols));
+		const rows = Math.max(1, Math.ceil(count / cols));
+		return { cols, rows };
+	});
+
 	async function toggleFullscreen() {
 		if (!browser) return;
 		try {
@@ -180,7 +203,7 @@
 		<!-- Tile grid fills the entire viewport -->
 		<div
 			class="flex-1 grid gap-2 p-2 min-h-0"
-			style="grid-template-columns: repeat({layoutDef.cols}, minmax(0, 1fr)); grid-template-rows: repeat({layoutDef.rows}, minmax(0, 1fr));"
+			style="grid-template-columns: repeat({effectiveLayout.cols}, minmax(0, 1fr)); grid-template-rows: repeat({effectiveLayout.rows}, minmax(0, 1fr));"
 			data-testid="spectator-tile-grid"
 		>
 			{#each visibleMatchIds as mid (mid)}
