@@ -202,7 +202,7 @@
 						<div class="flex flex-col items-center gap-0 min-w-0 max-w-full">
 							<span
 								class="font-bold truncate max-w-full text-center leading-tight"
-								style="font-size: clamp(1.25rem, 4.5cqw, 4.5rem);"
+								style="font-size: clamp(1.75rem, 7cqw, 6.5rem);"
 							>
 								{score.club_name}
 							</span>
