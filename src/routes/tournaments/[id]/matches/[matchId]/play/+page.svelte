@@ -433,8 +433,25 @@
 			method: 'POST',
 			headers: { 'content-type': 'application/json' },
 			body: JSON.stringify(payload)
-		}).catch(() => {});
+		})
+			.then(async (res) => {
+				if (!res.ok) {
+					const txt = await res.text().catch(() => '');
+					console.error('pushLiveState failed', res.status, txt);
+				}
+			})
+			.catch((err) => console.error('pushLiveState network error', err));
 	}
+
+	// Heartbeat: keep live state warm so spectators self-heal across server restarts
+	$effect(() => {
+		if (!browser) return;
+		if (!matchStarted || matchCompleted) return;
+		const interval = setInterval(() => {
+			pushLiveState();
+		}, 5000);
+		return () => clearInterval(interval);
+	});
 
 	function clearLiveState() {
 		fetch(`/api/matches/${data.match.id}/live`, {
