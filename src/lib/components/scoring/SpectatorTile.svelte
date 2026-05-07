@@ -3,14 +3,23 @@
 	import ClubCrest from '$lib/components/clubs/ClubCrest.svelte';
 	import type { Match } from '$lib/types/league.js';
 	import type { LiveMatchState } from '$lib/types/live-match.js';
+	import type { Player } from '$lib/types/club.js';
 
 	interface Props {
 		matchId: string;
 		legsToWin: number;
 		pollIntervalMs?: number;
+		homeRoster?: Player[];
+		awayRoster?: Player[];
 	}
 
-	let { matchId, legsToWin, pollIntervalMs = 1500 }: Props = $props();
+	let {
+		matchId,
+		legsToWin,
+		pollIntervalMs = 1500,
+		homeRoster = [],
+		awayRoster = []
+	}: Props = $props();
 
 	let match = $state<Match | null>(null);
 	let live = $state<LiveMatchState | null>(null);
@@ -90,7 +99,19 @@
 					>
 						{match.home_club.short_name}
 					</span>
-					{#if live}
+					{#if homeRoster.length > 0}
+						<div class="flex flex-wrap justify-end gap-x-2 gap-y-0 mt-0.5 max-w-full">
+							{#each homeRoster as p (p.id)}
+								{@const isActive = live?.current_player_side === 'home' && live.home_player_name === `${p.first_name} ${p.last_name}`}
+								<span
+									class="leading-tight {isActive ? 'text-primary font-semibold' : 'text-base-content/60'}"
+									style="font-size: clamp(0.7rem, 1.8cqw, 1.5rem);"
+								>
+									{#if isActive}● {/if}{p.first_name} {p.last_name}
+								</span>
+							{/each}
+						</div>
+					{:else if live}
 						<span
 							class="text-base-content/60 truncate max-w-full leading-tight"
 							style="font-size: clamp(0.7rem, 1.8cqw, 1.5rem);"
@@ -140,7 +161,19 @@
 					>
 						{match.away_club.short_name}
 					</span>
-					{#if live}
+					{#if awayRoster.length > 0}
+						<div class="flex flex-wrap justify-start gap-x-2 gap-y-0 mt-0.5 max-w-full">
+							{#each awayRoster as p (p.id)}
+								{@const isActive = live?.current_player_side === 'away' && live.away_player_name === `${p.first_name} ${p.last_name}`}
+								<span
+									class="leading-tight {isActive ? 'text-primary font-semibold' : 'text-base-content/60'}"
+									style="font-size: clamp(0.7rem, 1.8cqw, 1.5rem);"
+								>
+									{#if isActive}● {/if}{p.first_name} {p.last_name}
+								</span>
+							{/each}
+						</div>
+					{:else if live}
 						<span
 							class="text-base-content/60 truncate max-w-full leading-tight"
 							style="font-size: clamp(0.7rem, 1.8cqw, 1.5rem);"

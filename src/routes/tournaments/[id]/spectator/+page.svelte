@@ -152,7 +152,13 @@
 			data-testid="spectator-tile-grid"
 		>
 			{#each visibleMatchIds as mid (mid)}
-				<SpectatorTile matchId={mid} {legsToWin} />
+				{@const m = data.matches.find((x: typeof data.matches[number]) => x.id === mid)}
+				<SpectatorTile
+					matchId={mid}
+					{legsToWin}
+					homeRoster={m ? data.rosters[m.home_club.id] ?? [] : []}
+					awayRoster={m ? data.rosters[m.away_club.id] ?? [] : []}
+				/>
 			{/each}
 		</div>
 	{/if}
