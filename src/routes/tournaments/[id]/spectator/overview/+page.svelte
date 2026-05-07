@@ -238,9 +238,16 @@
 		<a
 			href="/tournaments/{tournament.id}/spectator"
 			class="btn btn-sm btn-neutral shadow-lg"
-			title="Zur Kachel-Ansicht"
+			title="Live-Kacheln"
 		>
 			▦ Kacheln
+		</a>
+		<a
+			href="/tournaments/{tournament.id}/spectator/trinkwertung"
+			class="btn btn-sm btn-neutral shadow-lg"
+			title="Trinkwertung"
+		>
+			🍺 Trinkwertung
 		</a>
 		<a
 			href="/tournaments/{tournament.id}/spectator/configure"

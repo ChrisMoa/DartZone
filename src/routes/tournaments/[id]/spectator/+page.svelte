@@ -174,7 +174,14 @@
 			class="btn btn-sm btn-neutral shadow-lg"
 			title="Spielplan-Uebersicht"
 		>
-			≡ Uebersicht
+			≡ Spielplan
+		</a>
+		<a
+			href="/tournaments/{data.tournament.id}/spectator/trinkwertung"
+			class="btn btn-sm btn-neutral shadow-lg"
+			title="Trinkwertung"
+		>
+			🍺 Trinkwertung
 		</a>
 		<a
 			href="/tournaments/{data.tournament.id}/spectator/configure"

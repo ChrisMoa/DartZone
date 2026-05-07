@@ -132,11 +132,18 @@
 				<div>
 					<h2 class="font-semibold">Zuschauer-Ansicht</h2>
 					<span class="text-sm text-base-content/60">
-						Live-Kacheln oder kompletter Spielplan in Vollbild
+						Live-Kacheln, Spielplan oder Trinkwertung in Vollbild
 					</span>
 				</div>
 			</div>
-			<div class="flex gap-2">
+			<div class="flex gap-2 flex-wrap justify-end">
+				<a
+					href="/tournaments/{tournament.id}/spectator"
+					class="btn btn-primary btn-sm"
+					data-testid="spectator-link"
+				>
+					Kacheln
+				</a>
 				<a
 					href="/tournaments/{tournament.id}/spectator/overview"
 					class="btn btn-outline btn-sm"
@@ -145,11 +152,11 @@
 					Spielplan
 				</a>
 				<a
-					href="/tournaments/{tournament.id}/spectator"
-					class="btn btn-primary btn-sm"
-					data-testid="spectator-link"
+					href="/tournaments/{tournament.id}/spectator/trinkwertung"
+					class="btn btn-outline btn-sm"
+					data-testid="spectator-trinkwertung-link"
 				>
-					Kacheln
+					🍺 Trinkwertung
 				</a>
 			</div>
 		</div>
