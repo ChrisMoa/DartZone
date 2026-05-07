@@ -13,6 +13,8 @@
 //   SIM_LEG_DELAY       seconds between leg completions per match (default: 6)
 //   SIM_TURN_DELAY      seconds between live-state pushes during a leg (default: 2)
 //   SIM_TURNS_PER_LEG   simulated turns per leg before completion (default: 8)
+//   SIM_FRESH=1         clone the source tournament first, run against the copy
+//                       (leaves the original untouched; each run gets a fresh bracket)
 
 import process from 'node:process';
 
@@ -22,6 +24,7 @@ const ROUND_PAUSE_S = Number(process.env.SIM_ROUND_PAUSE ?? 60);
 const LEG_DELAY_S = Number(process.env.SIM_LEG_DELAY ?? 6);
 const TURN_DELAY_S = Number(process.env.SIM_TURN_DELAY ?? 2);
 const TURNS_PER_LEG = Number(process.env.SIM_TURNS_PER_LEG ?? 8);
+const FRESH = process.env.SIM_FRESH === '1' || process.env.SIM_FRESH === 'true';
 
 const ROUND_ORDER = ['Runde 1', 'Achtelfinale', 'Viertelfinale', 'Halbfinale', 'Finale'];
 
@@ -40,6 +43,14 @@ async function fetchJson(path, init = {}) {
 
 async function listTournaments() {
 	return fetchJson('/api/tournaments');
+}
+
+async function cloneTournament(srcId, name) {
+	return fetchJson(`/api/tournaments/${srcId}/clone`, {
+		method: 'POST',
+		headers: { 'content-type': 'application/json' },
+		body: JSON.stringify(name ? { name } : {})
+	});
 }
 
 async function getTournamentLive(tid) {
@@ -276,6 +287,15 @@ async function main() {
 			process.exit(1);
 		}
 		tournament = pick;
+	}
+
+	if (FRESH) {
+		const stamp = new Date().toISOString().replace('T', ' ').slice(0, 16);
+		const newName = `${tournament.name} · Sim ${stamp}`;
+		log(`🆕 SIM_FRESH=1 → cloning "${tournament.name}" → "${newName}"`);
+		const clone = await cloneTournament(tournament.id, newName);
+		log(`   New tournament id: ${clone.tournament.id} (${clone.matchCount} matches in "${clone.firstRound}")`);
+		tournament = clone.tournament;
 	}
 
 	log(`Tournament: ${tournament.name} (${tournament.id}) — ${tournament.game_mode} · ${tournament.format} · best of ${tournament.sets_per_match}`);
