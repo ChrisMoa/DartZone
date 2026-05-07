@@ -201,8 +201,8 @@
 						</div>
 						<div class="flex flex-col items-center gap-0 min-w-0 max-w-full">
 							<span
-								class="font-bold truncate max-w-full text-center leading-tight"
-								style="font-size: clamp(1.75rem, 7cqw, 6.5rem);"
+								class="font-bold break-words text-center leading-[1.05] line-clamp-2 max-w-full"
+								style="font-size: clamp(2.5rem, 11cqw, 10rem);"
 							>
 								{score.club_name}
 							</span>
