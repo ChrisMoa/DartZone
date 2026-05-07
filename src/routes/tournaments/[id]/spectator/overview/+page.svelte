@@ -15,6 +15,12 @@
 	const inProgress = $derived(matches.filter((m) => m.status === 'in_progress'));
 	const scheduled = $derived(matches.filter((m) => m.status === 'scheduled'));
 	const completed = $derived(matches.filter((m) => m.status === 'completed'));
+	const visibleMatches = $derived([...inProgress, ...scheduled, ...completed]);
+
+	// Cap columns at 2 so each card stays wide enough to read from across a room.
+	// Choose rows so all visible matches fit on screen without scrolling.
+	const cols = $derived(visibleMatches.length <= 1 ? 1 : 2);
+	const rows = $derived(Math.max(1, Math.ceil(visibleMatches.length / cols)));
 
 	async function fetchLive() {
 		try {
@@ -92,19 +98,13 @@
 	onmousemove={showChrome}
 	ontouchstart={showChrome}
 >
-	<!-- Big title bar -->
-	<div class="shrink-0 px-6 py-3 bg-base-100 shadow-sm flex items-center justify-between gap-4">
+	<!-- Compact title bar -->
+	<div class="shrink-0 px-4 py-2 bg-base-100 shadow-sm flex items-center justify-between gap-4">
 		<div class="flex items-baseline gap-4 min-w-0">
-			<h1
-				class="font-bold truncate leading-tight"
-				style="font-size: clamp(1.75rem, 4cqw, 5rem);"
-			>
+			<h1 class="font-bold truncate leading-tight text-2xl md:text-3xl">
 				{tournament.name}
 			</h1>
-			<span
-				class="text-base-content/60 shrink-0"
-				style="font-size: clamp(0.875rem, 1.6cqw, 2rem);"
-			>
+			<span class="text-base-content/60 shrink-0 text-sm md:text-base">
 				{inProgress.length} live · {scheduled.length} geplant · {completed.length} fertig
 			</span>
 		</div>
@@ -117,12 +117,12 @@
 		</div>
 	{:else}
 		<div
-			class="flex-1 grid gap-2 p-2 min-h-0 overflow-y-auto auto-rows-fr"
-			style="grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr));"
+			class="flex-1 grid gap-2 p-2 min-h-0 overflow-y-auto"
+			style="grid-template-columns: repeat({cols}, minmax(0, 1fr)); grid-template-rows: repeat({rows}, minmax(0, 1fr));"
 			data-testid="overview-match-grid"
 		>
 			<!-- Live matches first, then scheduled, then completed -->
-			{#each [...inProgress, ...scheduled, ...completed] as match (match.id)}
+			{#each visibleMatches as match (match.id)}
 				{@const sb = statusBadge(match.status)}
 				<div
 					class="match-row flex items-stretch rounded-lg shadow-sm bg-base-100 overflow-hidden border-2 {match.status === 'in_progress' ? 'border-success animate-pulse-slow' : 'border-base-300'}"
@@ -130,24 +130,24 @@
 					data-match-id={match.id}
 				>
 					<!-- Home -->
-					<div class="flex-1 flex items-center justify-end gap-3 px-3 min-w-0">
+					<div class="flex-1 flex items-center justify-end gap-4 px-4 min-w-0">
 						<div class="flex flex-col items-end min-w-0">
 							<span
 								class="font-bold truncate max-w-full leading-tight text-right"
-								style="font-size: clamp(1.25rem, 3cqw, 3.5rem);"
+								style="font-size: clamp(1.5rem, 5.5cqw, 7rem);"
 							>
 								{match.home_club.name}
 							</span>
 							<span
-								class="text-base-content/50 truncate max-w-full leading-tight"
-								style="font-size: clamp(0.75rem, 1.4cqw, 1.5rem);"
+								class="text-base-content/50 truncate max-w-full leading-tight uppercase tracking-wider"
+								style="font-size: clamp(0.85rem, 2.2cqw, 2.5rem);"
 							>
 								{match.home_club.short_name}
 							</span>
 						</div>
 						<div
 							class="shrink-0 crest-fit"
-							style="width: clamp(48px, 7cqw, 128px); height: clamp(48px, 7cqw, 128px);"
+							style="width: clamp(64px, 12cqw, 240px); height: clamp(64px, 12cqw, 240px);"
 						>
 							<ClubCrest
 								club_id={match.home_club.id}
@@ -155,23 +155,23 @@
 								crest_url={match.home_club.crest_url}
 								club_name={match.home_club.name}
 								primary_color={match.home_club.primary_color}
-								size={128}
+								size={240}
 							/>
 						</div>
 					</div>
 
 					<!-- Score / status -->
-					<div class="flex flex-col items-center justify-center px-2 shrink-0 gap-0.5">
+					<div class="flex flex-col items-center justify-center px-3 shrink-0 gap-1">
 						<span
-							class="rounded-full font-bold uppercase tracking-widest leading-none px-2 py-0.5 {sb.cls}"
-							style="font-size: clamp(0.6rem, 1.2cqw, 1rem);"
+							class="rounded-full font-bold uppercase tracking-widest leading-none px-3 py-1 {sb.cls}"
+							style="font-size: clamp(0.75rem, 1.8cqw, 1.75rem);"
 						>
 							{sb.label}
 						</span>
 						{#if match.status === 'completed' || match.status === 'in_progress'}
 							<span
 								class="font-black tabular-nums leading-none"
-								style="font-size: clamp(2rem, 6cqw, 7rem);"
+								style="font-size: clamp(3rem, 11cqw, 14rem);"
 								data-testid="overview-match-score"
 							>
 								{match.home_legs_won}:{match.away_legs_won}
@@ -179,7 +179,7 @@
 						{:else}
 							<span
 								class="font-light text-base-content/40 leading-none"
-								style="font-size: clamp(2rem, 6cqw, 7rem);"
+								style="font-size: clamp(3rem, 11cqw, 14rem);"
 							>
 								–
 							</span>
@@ -187,7 +187,7 @@
 						{#if match.round}
 							<span
 								class="text-base-content/50 leading-none uppercase tracking-wider"
-								style="font-size: clamp(0.6rem, 1.2cqw, 1rem);"
+								style="font-size: clamp(0.75rem, 1.8cqw, 1.75rem);"
 							>
 								{match.round}
 							</span>
@@ -195,10 +195,10 @@
 					</div>
 
 					<!-- Away -->
-					<div class="flex-1 flex items-center justify-start gap-3 px-3 min-w-0">
+					<div class="flex-1 flex items-center justify-start gap-4 px-4 min-w-0">
 						<div
 							class="shrink-0 crest-fit"
-							style="width: clamp(48px, 7cqw, 128px); height: clamp(48px, 7cqw, 128px);"
+							style="width: clamp(64px, 12cqw, 240px); height: clamp(64px, 12cqw, 240px);"
 						>
 							<ClubCrest
 								club_id={match.away_club.id}
@@ -206,19 +206,19 @@
 								crest_url={match.away_club.crest_url}
 								club_name={match.away_club.name}
 								primary_color={match.away_club.primary_color}
-								size={128}
+								size={240}
 							/>
 						</div>
 						<div class="flex flex-col items-start min-w-0">
 							<span
 								class="font-bold truncate max-w-full leading-tight text-left"
-								style="font-size: clamp(1.25rem, 3cqw, 3.5rem);"
+								style="font-size: clamp(1.5rem, 5.5cqw, 7rem);"
 							>
 								{match.away_club.name}
 							</span>
 							<span
-								class="text-base-content/50 truncate max-w-full leading-tight"
-								style="font-size: clamp(0.75rem, 1.4cqw, 1.5rem);"
+								class="text-base-content/50 truncate max-w-full leading-tight uppercase tracking-wider"
+								style="font-size: clamp(0.85rem, 2.2cqw, 2.5rem);"
 							>
 								{match.away_club.short_name}
 							</span>
