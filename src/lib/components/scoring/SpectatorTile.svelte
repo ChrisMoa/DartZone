@@ -216,13 +216,13 @@
 					<div class="flex flex-col items-center">
 						<span
 							class="uppercase tracking-wider text-base-content/60"
-							style="font-size: clamp(0.7rem, 1.6cqw, 1.25rem);"
+							style="font-size: clamp(0.85rem, 2.2cqw, 1.75rem);"
 						>
 							Rest
 						</span>
 						<span
 							class="font-bold tabular-nums leading-none text-base-content/80"
-							style="font-size: clamp(1.5rem, 6cqw, 5rem);"
+							style="font-size: clamp(2.25rem, 12cqw, 11rem);"
 						>
 							{live.home_remaining}
 						</span>
@@ -246,13 +246,13 @@
 					<div class="flex flex-col items-center">
 						<span
 							class="uppercase tracking-wider text-base-content/60"
-							style="font-size: clamp(0.7rem, 1.6cqw, 1.25rem);"
+							style="font-size: clamp(0.85rem, 2.2cqw, 1.75rem);"
 						>
 							Rest
 						</span>
 						<span
 							class="font-bold tabular-nums leading-none text-base-content/80"
-							style="font-size: clamp(1.5rem, 6cqw, 5rem);"
+							style="font-size: clamp(2.25rem, 12cqw, 11rem);"
 						>
 							{live.away_remaining}
 						</span>
