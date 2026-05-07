@@ -78,6 +78,51 @@ async function pushLiveState(mid, payload) {
 	}).catch((err) => log(`pushLiveState failed for ${mid}:`, err.message));
 }
 
+let trinkAvailable = null; // null = unknown, true/false after first probe
+async function ensureDrinkingGame(tid) {
+	if (trinkAvailable !== null) return trinkAvailable;
+	try {
+		const res = await fetch(`${HOST}/api/tournaments/${tid}/trinkwertung`);
+		if (res.ok) {
+			trinkAvailable = true;
+			return true;
+		}
+		// 404 → not created yet; create via the form action
+		if (res.status === 404) {
+			const fd = new FormData();
+			const create = await fetch(`${HOST}/tournaments/${tid}/trinkwertung?/create`, {
+				method: 'POST',
+				headers: { 'x-sveltekit-action': 'true' },
+				body: fd
+			});
+			trinkAvailable = create.ok;
+			if (trinkAvailable) log('🍺 Trinkwertung wurde gestartet');
+			return trinkAvailable;
+		}
+	} catch {
+		/* ignore */
+	}
+	trinkAvailable = false;
+	return false;
+}
+
+async function bumpDrinks(tid, clubId, amount) {
+	if (!(await ensureDrinkingGame(tid))) return;
+	try {
+		const res = await fetch(`${HOST}/api/tournaments/${tid}/trinkwertung`, {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify({ clubId, amount })
+		});
+		if (!res.ok && res.status !== 400) {
+			const t = await res.text().catch(() => '');
+			log(`  🍺 bump failed (${res.status}): ${t.slice(0, 120)}`);
+		}
+	} catch (err) {
+		log(`  🍺 bump network error: ${err.message}`);
+	}
+}
+
 function pickLatestKnockout(tournaments) {
 	const knockout = tournaments.filter((t) => t.format === 'knockout');
 	if (knockout.length === 0) return null;
@@ -188,10 +233,22 @@ async function playMatch(tournament, matchInitial) {
 		if (winnerSide === 'home') homeLegs++;
 		else awayLegs++;
 		log(`  ${label} leg ${legNumber} → ${winnerSide} wins (${homeLegs}:${awayLegs})`);
+
+		// Loser of the leg drinks 1-2; winner sometimes drinks 1 too
+		const loserClubId = winnerSide === 'home' ? matchInitial.away_club.id : matchInitial.home_club.id;
+		const winnerClubId = winnerSide === 'home' ? matchInitial.home_club.id : matchInitial.away_club.id;
+		await bumpDrinks(tid, loserClubId, rand(1, 2));
+		if (Math.random() < 0.4) await bumpDrinks(tid, winnerClubId, 1);
+
 		legNumber++;
 		startingPlayer = startingPlayer === 'home' ? 'away' : 'home';
 		await sleep(LEG_DELAY_S * 1000);
 	}
+
+	// Match-level bonus: loser of the match drinks 2-4 more
+	const matchLoserClubId =
+		homeLegs > awayLegs ? matchInitial.away_club.id : matchInitial.home_club.id;
+	await bumpDrinks(tid, matchLoserClubId, rand(2, 4));
 
 	log(`✔ Finished ${label}: ${homeLegs}:${awayLegs}`);
 }

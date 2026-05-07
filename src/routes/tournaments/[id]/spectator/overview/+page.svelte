@@ -15,10 +15,62 @@
 	const inProgress = $derived(matches.filter((m) => m.status === 'in_progress'));
 	const scheduled = $derived(matches.filter((m) => m.status === 'scheduled'));
 	const completed = $derived(matches.filter((m) => m.status === 'completed'));
-	const visibleMatches = $derived([...inProgress, ...scheduled, ...completed]);
+
+	const ROUND_ORDER = ['Runde 1', 'Achtelfinale', 'Viertelfinale', 'Halbfinale', 'Finale'];
+
+	// Distinct round labels in canonical order; matches without a round get bucketed as '_other'.
+	const rounds = $derived.by(() => {
+		const present = new Set<string>();
+		for (const m of matches) present.add(m.round ?? '_other');
+		const ordered = ROUND_ORDER.filter((r) => present.has(r));
+		const unknown = [...present].filter((r) => !ROUND_ORDER.includes(r));
+		return [...ordered, ...unknown];
+	});
+
+	// Active round = first round in canonical order that still has open matches;
+	// fall back to the latest round present if everything is done.
+	const activeRound = $derived.by(() => {
+		for (const r of rounds) {
+			if (matches.some((m) => (m.round ?? '_other') === r && m.status !== 'completed')) {
+				return r;
+			}
+		}
+		return rounds[rounds.length - 1] ?? null;
+	});
+
+	let manualRound = $state<string | null>(null);
+	const selectedRound = $derived(manualRound ?? activeRound);
+
+	// When the auto-detected active round changes (e.g. Achtel → Viertel after sim), and the
+	// user hasn't manually picked a different tab, follow the change automatically.
+	let lastActiveRound = $state<string | null>(null);
+	$effect(() => {
+		if (activeRound !== lastActiveRound) {
+			if (manualRound === lastActiveRound || manualRound === null) {
+				manualRound = null; // re-track active
+			}
+			lastActiveRound = activeRound;
+		}
+	});
+
+	const visibleMatches = $derived.by(() => {
+		const filtered = matches.filter((m) => (m.round ?? '_other') === selectedRound);
+		const live = filtered.filter((m) => m.status === 'in_progress');
+		const sched = filtered.filter((m) => m.status === 'scheduled');
+		const done = filtered.filter((m) => m.status === 'completed');
+		return [...live, ...sched, ...done];
+	});
+
+	function roundCounts(round: string): { live: number; scheduled: number; completed: number } {
+		const r = matches.filter((m) => (m.round ?? '_other') === round);
+		return {
+			live: r.filter((m) => m.status === 'in_progress').length,
+			scheduled: r.filter((m) => m.status === 'scheduled').length,
+			completed: r.filter((m) => m.status === 'completed').length
+		};
+	}
 
 	// Cap columns at 2 so each card stays wide enough to read from across a room.
-	// Choose rows so all visible matches fit on screen without scrolling.
 	const cols = $derived(visibleMatches.length <= 1 ? 1 : 2);
 	const rows = $derived(Math.max(1, Math.ceil(visibleMatches.length / cols)));
 
@@ -109,6 +161,35 @@
 			</span>
 		</div>
 	</div>
+
+	<!-- Round tabs -->
+	{#if rounds.length > 1}
+		<div
+			class="shrink-0 px-2 py-2 bg-base-100/70 border-b border-base-300 flex items-center gap-2 overflow-x-auto"
+			data-testid="overview-round-tabs"
+		>
+			{#each rounds as r (r)}
+				{@const c = roundCounts(r)}
+				{@const isActive = r === selectedRound}
+				{@const isCurrent = r === activeRound}
+				<button
+					class="btn btn-sm shrink-0 {isActive ? 'btn-primary' : 'btn-ghost'} {isCurrent && !isActive ? 'border border-success/60' : ''}"
+					onclick={() => (manualRound = r)}
+					data-testid="overview-round-tab"
+					data-round={r}
+				>
+					<span class="font-semibold">{r === '_other' ? 'Sonstige' : r}</span>
+					{#if c.live > 0}
+						<span class="badge badge-xs badge-success">{c.live} live</span>
+					{:else if c.scheduled > 0}
+						<span class="badge badge-xs badge-info">{c.scheduled}</span>
+					{:else}
+						<span class="badge badge-xs badge-ghost">{c.completed} ✓</span>
+					{/if}
+				</button>
+			{/each}
+		</div>
+	{/if}
 
 	<!-- Match grid (fills remaining viewport) -->
 	{#if matches.length === 0}
