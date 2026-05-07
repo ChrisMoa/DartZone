@@ -30,6 +30,18 @@
 	let fullscreen = $state(false);
 	let chromeVisible = $state(true);
 	let chromeTimer: ReturnType<typeof setTimeout> | null = null;
+	let lastServerUpdatedAt = 0;
+
+	function applyConfig(layout: Layout, matchIds: string[]) {
+		selectedLayout = layout;
+		selectedMatchIds = matchIds;
+		// Mirror to localStorage so same-browser tabs without server poll stay in sync
+		try {
+			localStorage.setItem(storageKey, JSON.stringify({ layout, matchIds }));
+		} catch {
+			/* ignore */
+		}
+	}
 
 	function loadFromStorage() {
 		const raw = localStorage.getItem(storageKey);
@@ -48,18 +60,34 @@
 			.map((m: (typeof data.matches)[number]) => m.id);
 	}
 
+	async function fetchServerConfig() {
+		try {
+			const res = await fetch(`/api/tournaments/${data.tournament.id}/spectator-config`);
+			if (!res.ok) return;
+			const cfg = (await res.json()) as { layout: Layout; matchIds: string[]; updated_at: number };
+			if (cfg.updated_at > lastServerUpdatedAt) {
+				lastServerUpdatedAt = cfg.updated_at;
+				applyConfig(cfg.layout ?? '2x2', Array.isArray(cfg.matchIds) ? cfg.matchIds : []);
+			}
+		} catch {
+			/* network errors are non-fatal */
+		}
+	}
+
 	$effect(() => {
 		if (!browser) return;
 		loadFromStorage();
+		// Pull latest server config immediately so a freshly-opened beamer
+		// reflects the most recent change even before the next poll tick.
+		fetchServerConfig();
 
-		// Cross-tab live updates from /configure
+		// Cross-tab live updates from /configure (same browser)
 		function onStorage(e: StorageEvent) {
 			if (e.key !== storageKey) return;
 			loadFromStorage();
 		}
 		window.addEventListener('storage', onStorage);
 
-		// Same-origin BroadcastChannel for richer in-process signalling
 		let bc: BroadcastChannel | null = null;
 		try {
 			bc = new BroadcastChannel(storageKey);
@@ -68,9 +96,13 @@
 			/* BroadcastChannel may not be available */
 		}
 
+		// Cross-device sync: poll server every 2s for config changes
+		const pollInterval = setInterval(fetchServerConfig, 2000);
+
 		return () => {
 			window.removeEventListener('storage', onStorage);
 			bc?.close();
+			clearInterval(pollInterval);
 		};
 	});
 

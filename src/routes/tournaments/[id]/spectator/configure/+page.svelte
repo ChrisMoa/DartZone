@@ -30,21 +30,39 @@
 
 	$effect(() => {
 		if (!browser || loaded) return;
-		const raw = localStorage.getItem(storageKey);
-		if (raw) {
+		// Prefer the server-side config (cross-device source of truth) over localStorage.
+		(async () => {
 			try {
-				const saved = JSON.parse(raw) as { layout: Layout; matchIds: string[] };
-				if (saved.layout) selectedLayout = saved.layout;
-				if (Array.isArray(saved.matchIds)) selectedMatchIds = saved.matchIds;
+				const res = await fetch(`/api/tournaments/${data.tournament.id}/spectator-config`);
+				if (res.ok) {
+					const cfg = (await res.json()) as { layout: Layout; matchIds: string[]; updated_at: number };
+					if (cfg.updated_at > 0) {
+						if (cfg.layout) selectedLayout = cfg.layout;
+						if (Array.isArray(cfg.matchIds)) selectedMatchIds = cfg.matchIds;
+						loaded = true;
+						return;
+					}
+				}
 			} catch {
-				/* ignore */
+				/* fall through to localStorage */
 			}
-		} else {
-			selectedMatchIds = data.matches
-				.filter((m: (typeof data.matches)[number]) => m.status === 'in_progress')
-				.map((m: (typeof data.matches)[number]) => m.id);
-		}
-		loaded = true;
+
+			const raw = localStorage.getItem(storageKey);
+			if (raw) {
+				try {
+					const saved = JSON.parse(raw) as { layout: Layout; matchIds: string[] };
+					if (saved.layout) selectedLayout = saved.layout;
+					if (Array.isArray(saved.matchIds)) selectedMatchIds = saved.matchIds;
+				} catch {
+					/* ignore */
+				}
+			} else {
+				selectedMatchIds = data.matches
+					.filter((m: (typeof data.matches)[number]) => m.status === 'in_progress')
+					.map((m: (typeof data.matches)[number]) => m.id);
+			}
+			loaded = true;
+		})();
 	});
 
 	let bc: BroadcastChannel | null = null;
@@ -58,14 +76,23 @@
 		return () => bc?.close();
 	});
 
+	let saveTimer: ReturnType<typeof setTimeout> | null = null;
 	$effect(() => {
 		if (!browser || !loaded) return;
-		localStorage.setItem(
-			storageKey,
-			JSON.stringify({ layout: selectedLayout, matchIds: selectedMatchIds })
-		);
+		const payload = { layout: selectedLayout, matchIds: selectedMatchIds };
+		localStorage.setItem(storageKey, JSON.stringify(payload));
 		// Same-tab notification (storage event only fires in other tabs)
 		bc?.postMessage({ type: 'update' });
+
+		// Debounced PUT to server (cross-device sync)
+		if (saveTimer) clearTimeout(saveTimer);
+		saveTimer = setTimeout(() => {
+			fetch(`/api/tournaments/${data.tournament.id}/spectator-config`, {
+				method: 'PUT',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify(payload)
+			}).catch((err) => console.error('spectator-config save failed', err));
+		}, 250);
 	});
 
 	const layoutDef = $derived(LAYOUTS.find((l) => l.id === selectedLayout) ?? LAYOUTS[2]);

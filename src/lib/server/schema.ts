@@ -106,4 +106,11 @@ CREATE TABLE IF NOT EXISTS drinking_scores (
 	updated_at TEXT NOT NULL DEFAULT (datetime('now')),
 	UNIQUE(drinking_game_id, club_id)
 );
+
+CREATE TABLE IF NOT EXISTS spectator_configs (
+	tournament_id TEXT PRIMARY KEY REFERENCES tournaments(id) ON DELETE CASCADE,
+	layout TEXT NOT NULL DEFAULT '2x2',
+	match_ids TEXT NOT NULL DEFAULT '[]',
+	updated_at INTEGER NOT NULL DEFAULT 0
+);
 `;
