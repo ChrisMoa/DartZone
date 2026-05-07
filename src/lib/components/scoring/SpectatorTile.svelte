@@ -188,73 +188,125 @@
 		<!-- Body: states -->
 		{#if matchCompleted}
 			<div class="flex-1 flex flex-col items-center justify-center p-3 bg-success/10 text-center">
-				<span class="text-lg font-bold">Beendet</span>
-				<span class="text-sm">{winnerLabel}</span>
+				<span
+					class="font-bold leading-none"
+					style="font-size: clamp(1.5rem, 8cqw, 6rem);"
+				>
+					Beendet
+				</span>
+				<span style="font-size: clamp(0.875rem, 3cqw, 2.5rem);">{winnerLabel}</span>
 			</div>
 		{:else if live && live.game_mode !== 'cricket'}
 			<div class="flex-1 grid grid-cols-2 gap-1 p-1 min-h-0">
 				<div
-					class="flex flex-col items-center justify-center rounded {homeIsActive ? 'bg-primary/15 ring-1 ring-primary' : 'bg-base-100'}"
+					class="flex flex-col items-center justify-around rounded py-2 {homeIsActive ? 'bg-primary/15 ring-1 ring-primary' : 'bg-base-100'}"
 				>
-					<span class="text-[10px] uppercase tracking-wider {homeIsActive ? 'text-primary' : 'text-base-content/60'}">
+					<span
+						class="uppercase tracking-wider {homeIsActive ? 'text-primary' : 'text-base-content/60'}"
+						style="font-size: clamp(0.7rem, 1.8cqw, 1.4rem);"
+					>
 						⌀ Schnitt
 					</span>
 					<span
 						class="font-black tabular-nums leading-none {homeIsActive ? 'text-primary' : ''}"
-						style="font-size: clamp(2rem, 9cqw, 7rem);"
+						style="font-size: clamp(3rem, 20cqw, 16rem);"
 					>
 						{live.home_average.toFixed(1)}
 					</span>
-					<span class="text-[10px] text-base-content/60 mt-1">Rest</span>
-					<span class="text-lg md:text-2xl font-bold tabular-nums text-base-content/80">
-						{live.home_remaining}
-					</span>
+					<div class="flex flex-col items-center">
+						<span
+							class="uppercase tracking-wider text-base-content/60"
+							style="font-size: clamp(0.7rem, 1.6cqw, 1.25rem);"
+						>
+							Rest
+						</span>
+						<span
+							class="font-bold tabular-nums leading-none text-base-content/80"
+							style="font-size: clamp(1.5rem, 6cqw, 5rem);"
+						>
+							{live.home_remaining}
+						</span>
+					</div>
 				</div>
 				<div
-					class="flex flex-col items-center justify-center rounded {awayIsActive ? 'bg-primary/15 ring-1 ring-primary' : 'bg-base-100'}"
+					class="flex flex-col items-center justify-around rounded py-2 {awayIsActive ? 'bg-primary/15 ring-1 ring-primary' : 'bg-base-100'}"
 				>
-					<span class="text-[10px] uppercase tracking-wider {awayIsActive ? 'text-primary' : 'text-base-content/60'}">
+					<span
+						class="uppercase tracking-wider {awayIsActive ? 'text-primary' : 'text-base-content/60'}"
+						style="font-size: clamp(0.7rem, 1.8cqw, 1.4rem);"
+					>
 						⌀ Schnitt
 					</span>
 					<span
 						class="font-black tabular-nums leading-none {awayIsActive ? 'text-primary' : ''}"
-						style="font-size: clamp(2rem, 9cqw, 7rem);"
+						style="font-size: clamp(3rem, 20cqw, 16rem);"
 					>
 						{live.away_average.toFixed(1)}
 					</span>
-					<span class="text-[10px] text-base-content/60 mt-1">Rest</span>
-					<span class="text-lg md:text-2xl font-bold tabular-nums text-base-content/80">
-						{live.away_remaining}
-					</span>
+					<div class="flex flex-col items-center">
+						<span
+							class="uppercase tracking-wider text-base-content/60"
+							style="font-size: clamp(0.7rem, 1.6cqw, 1.25rem);"
+						>
+							Rest
+						</span>
+						<span
+							class="font-bold tabular-nums leading-none text-base-content/80"
+							style="font-size: clamp(1.5rem, 6cqw, 5rem);"
+						>
+							{live.away_remaining}
+						</span>
+					</div>
 				</div>
 			</div>
 
 			<!-- Footer: turn info -->
-			<div class="flex items-center justify-center gap-2 flex-wrap px-2 py-1 bg-base-100 shrink-0 border-t border-base-300">
-				<span class="text-[11px] text-base-content/70">
+			<div class="flex items-center justify-center gap-3 flex-wrap px-3 py-1.5 bg-base-100 shrink-0 border-t border-base-300">
+				<span
+					class="text-base-content/70"
+					style="font-size: clamp(0.7rem, 1.6cqw, 1.25rem);"
+				>
 					Leg {live.leg_number} · D{live.current_dart}/3
 				</span>
 				{#if live.current_turn_throws.length > 0}
 					{#each live.current_turn_throws as t, i (i)}
-						<span class="badge badge-sm {t.is_bust ? 'badge-error' : 'badge-neutral'} text-[10px]">
+						<span
+							class="font-semibold {t.is_bust ? 'text-error' : 'text-base-content'}"
+							style="font-size: clamp(0.75rem, 2cqw, 1.5rem);"
+						>
 							{formatThrow(t)}
 						</span>
 					{/each}
-					<span class="text-xs font-bold">
+					<span
+						class="font-bold"
+						style="font-size: clamp(0.85rem, 2.4cqw, 1.75rem);"
+					>
 						Σ {live.current_turn_throws.reduce((s, t) => s + (t.is_bust ? 0 : t.score), 0)}
 					</span>
 				{/if}
 				{#if isMatchPoint}
-					<span class="badge badge-sm badge-warning animate-pulse text-[10px]">MP</span>
+					<span class="badge badge-warning animate-pulse" style="font-size: clamp(0.7rem, 1.6cqw, 1.25rem);">
+						MP
+					</span>
 				{/if}
 			</div>
 		{:else if live && live.game_mode === 'cricket'}
 			<div class="flex-1 flex items-center justify-center p-3 text-center">
-				<span class="text-xs text-base-content/60">Cricket-Live folgt</span>
+				<span
+					class="text-base-content/60"
+					style="font-size: clamp(0.875rem, 2.5cqw, 2rem);"
+				>
+					Cricket-Live folgt
+				</span>
 			</div>
 		{:else}
 			<div class="flex-1 flex items-center justify-center p-3 text-center">
-				<span class="text-xs text-base-content/60">Noch nicht gestartet</span>
+				<span
+					class="text-base-content/40 font-medium"
+					style="font-size: clamp(0.875rem, 3cqw, 2.5rem);"
+				>
+					Noch nicht gestartet
+				</span>
 			</div>
 		{/if}
 	{/if}
